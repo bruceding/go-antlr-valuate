@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -43,6 +45,75 @@ func (v *ASTEvaluator) Visit(tree antlr.ParseTree) interface{} { return tree.Acc
 func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 	if ctx.Primary() != nil {
 		return v.Visit(ctx.Primary())
+	}
+	if len(ctx.AllExpression()) == 1 {
+		if ctx.prefix != nil {
+			switch ctx.prefix.GetText() {
+			case "-":
+				return (-1) * (v.Visit(ctx.Expression(0))).(float64)
+			case "+":
+				return v.Visit(ctx.Expression(0))
+			case "!":
+				return !v.Visit(ctx.Expression(0)).(bool)
+			case "~":
+				return float64(^int(v.Visit(ctx.Expression(0)).(float64)))
+			case "++":
+				return float64(1 + int(v.Visit(ctx.Expression(0)).(float64)))
+			case "--":
+				return float64(int(v.Visit(ctx.Expression(0)).(float64)) - 1)
+			}
+		}
+		return v.Visit(ctx.Expression(0))
+	} else if len(ctx.AllExpression()) == 2 {
+		left := v.Visit(ctx.Expression(0))
+		right := v.Visit(ctx.Expression(1))
+		switch ctx.bop.GetText() {
+		case "+":
+			switch val := left.(type) {
+			case string:
+				return val + right.(string)
+			case float64:
+				return val + right.(float64)
+			case []any:
+				return append(val, right.([]any)...)
+			default:
+				return fmt.Errorf("type:%T not support op:+ ", val)
+			}
+		case "-":
+			switch val := left.(type) {
+			case float64:
+				return val - right.(float64)
+			default:
+				return fmt.Errorf("type:%T not support op:+ ", val)
+			}
+		case "*":
+			switch val := left.(type) {
+			case float64:
+				return val * right.(float64)
+			default:
+				return fmt.Errorf("type:%T not support op:+ ", val)
+			}
+		case "/":
+			switch val := left.(type) {
+			case float64:
+				if right.(float64) == 0 {
+					return fmt.Errorf("right value:%v should not be zero ", right)
+				}
+				return val / right.(float64)
+			default:
+				return fmt.Errorf("type:%T not support op:+ ", val)
+			}
+		case "**":
+			switch val := left.(type) {
+			case float64:
+				return math.Pow(val, right.(float64))
+			default:
+				return fmt.Errorf("type:%T not support op:+ ", val)
+			}
+
+		default:
+			return fmt.Errorf("op:%s not support", ctx.bop.GetText())
+		}
 	}
 	return v.VisitChildren(ctx)
 }
