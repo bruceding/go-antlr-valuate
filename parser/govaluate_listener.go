@@ -29,6 +29,9 @@ type GovaluateListener interface {
 	// EnterArrays is called when entering the arrays production.
 	EnterArrays(c *ArraysContext)
 
+	// EnterIdentifier is called when entering the identifier production.
+	EnterIdentifier(c *IdentifierContext)
+
 	// EnterArray is called when entering the array production.
 	EnterArray(c *ArrayContext)
 
@@ -55,6 +58,9 @@ type GovaluateListener interface {
 
 	// ExitArrays is called when exiting the arrays production.
 	ExitArrays(c *ArraysContext)
+
+	// ExitIdentifier is called when exiting the identifier production.
+	ExitIdentifier(c *IdentifierContext)
 
 	// ExitArray is called when exiting the array production.
 	ExitArray(c *ArrayContext)

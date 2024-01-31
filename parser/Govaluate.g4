@@ -1,14 +1,13 @@
 grammar Govaluate;
 
 expression: primary
-            | IDENTIFIER
             | '(' expression ')'
             | functionCall
             | prefix=('+'|'-'|'++'|'--') expression
             | prefix=('~'|'!') expression
             | expression bop=('*'|'/'|'%'|'**') expression
             | expression bop=('+'|'-') expression
-            | expression ('<' '<' | '>' '>' '>' | '>' '>') expression
+            | expression bop=('<<' |  '>>') expression
             | expression bop=('<=' | '>=' | '>' | '<') expression
             | expression bop=('==' | '!=') expression
             | expression bop='&' expression
@@ -17,9 +16,9 @@ expression: primary
             | expression bop='&&' expression
             | expression bop='||' expression
             | expression bop='?' expression ':' expression
-            | <assoc=right> expression
-              bop=('=' | '+=' | '-=' | '*=' | '/=' | '&=' | '|=' | '^=' | '>>=' | '>>>=' | '<<=' | '%=')
-              expression
+            //| <assoc=right> expression
+             // bop=('=' | '+=' | '-=' | '*=' | '/=' | '&=' | '|=' | '^=' | '>>=' | '>>>=' | '<<=' | '%=')
+              //expression
             | expression IN array
            ;
 
@@ -34,6 +33,7 @@ primary: FLOAT_LITERAL #float
        | STRING_LITERAL #string
        | BOOL_LITERAL #bool
        | array #arrays
+       | IDENTIFIER #identifier
        ;
 
 IN : 'in' ;
@@ -76,16 +76,16 @@ array_value : STRING_LITERAL
 
 // Identifiers
 IDENTIFIER:         Letter LetterOrDigit*
-          | '${' Letter LetterOrDigit* '}'
+          | '[' Letter LetterOrDigit* ']'
           ;
 
 fragment LetterOrDigit
     : Letter
-    | [0-9]
+    | [0-9-_]
     ;
 
 fragment Letter
-    : [a-zA-Z$_] // these are the "java letters" below 0x7F
+    : [a-zA-Z$] // these are the "java letters" below 0x7F
     | ~[\u0000-\u007F\uD800-\uDBFF] // covers all characters above 0x7F which are not a surrogate
     | [\uD800-\uDBFF] [\uDC00-\uDFFF] // covers UTF-16 surrogate pairs encodings for U+10000 to U+10FFFF
     ;

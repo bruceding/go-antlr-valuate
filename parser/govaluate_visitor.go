@@ -29,6 +29,9 @@ type GovaluateVisitor interface {
 	// Visit a parse tree produced by GovaluateParser#arrays.
 	VisitArrays(ctx *ArraysContext) interface{}
 
+	// Visit a parse tree produced by GovaluateParser#identifier.
+	VisitIdentifier(ctx *IdentifierContext) interface{}
+
 	// Visit a parse tree produced by GovaluateParser#array.
 	VisitArray(ctx *ArrayContext) interface{}
 

@@ -63,6 +63,12 @@ func (s *BaseGovaluateListener) EnterArrays(ctx *ArraysContext) {}
 // ExitArrays is called when production arrays is exited.
 func (s *BaseGovaluateListener) ExitArrays(ctx *ArraysContext) {}
 
+// EnterIdentifier is called when production identifier is entered.
+func (s *BaseGovaluateListener) EnterIdentifier(ctx *IdentifierContext) {}
+
+// ExitIdentifier is called when production identifier is exited.
+func (s *BaseGovaluateListener) ExitIdentifier(ctx *IdentifierContext) {}
+
 // EnterArray is called when production array is entered.
 func (s *BaseGovaluateListener) EnterArray(ctx *ArrayContext) {}
 

@@ -36,6 +36,10 @@ func (v *BaseGovaluateVisitor) VisitArrays(ctx *ArraysContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseGovaluateVisitor) VisitIdentifier(ctx *IdentifierContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseGovaluateVisitor) VisitArray(ctx *ArrayContext) interface{} {
 	return v.VisitChildren(ctx)
 }

@@ -3,8 +3,10 @@ package parser
 import (
 	"fmt"
 	"math"
+	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/bruceding/go-antlr-valuate/utils"
@@ -30,6 +32,7 @@ var _ GovaluateVisitor = &ASTEvaluator{}
 type ASTEvaluator struct {
 	BaseGovaluateVisitor
 	primaryMap map[antlr.Parser]PrimaryValue
+	paramsMap  map[string]any
 }
 
 func NewASTEvaluator() *ASTEvaluator {
@@ -38,7 +41,42 @@ func NewASTEvaluator() *ASTEvaluator {
 		//BaseParseTreeVisitor: &antlr.BaseParseTreeVisitor{},
 		//},
 		primaryMap: make(map[antlr.Parser]PrimaryValue),
+		paramsMap:  make(map[string]any),
 	}
+}
+func NewASTEvaluatorWithParams(p map[string]any) *ASTEvaluator {
+	ast := NewASTEvaluator()
+	for k, v := range p {
+		switch val := v.(type) {
+		case float32:
+			ast.paramsMap[k] = float64(val)
+		case float64:
+			ast.paramsMap[k] = val
+		case int:
+			ast.paramsMap[k] = float64(val)
+		case int8:
+			ast.paramsMap[k] = float64(val)
+		case int16:
+			ast.paramsMap[k] = float64(val)
+		case int32:
+			ast.paramsMap[k] = float64(val)
+		case int64:
+			ast.paramsMap[k] = float64(val)
+		case uint:
+			ast.paramsMap[k] = float64(val)
+		case uint8:
+			ast.paramsMap[k] = float64(val)
+		case uint16:
+			ast.paramsMap[k] = float64(val)
+		case uint32:
+			ast.paramsMap[k] = float64(val)
+		case uint64:
+			ast.paramsMap[k] = float64(val)
+		default:
+			ast.paramsMap[k] = val
+		}
+	}
+	return ast
 }
 func (v *ASTEvaluator) Visit(tree antlr.ParseTree) interface{} { return tree.Accept(v) }
 
@@ -84,14 +122,14 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 			case float64:
 				return val - right.(float64)
 			default:
-				return fmt.Errorf("type:%T not support op:+ ", val)
+				return fmt.Errorf("type:%T not support op:- ", val)
 			}
 		case "*":
 			switch val := left.(type) {
 			case float64:
 				return val * right.(float64)
 			default:
-				return fmt.Errorf("type:%T not support op:+ ", val)
+				return fmt.Errorf("type:%T not support op:* ", val)
 			}
 		case "/":
 			switch val := left.(type) {
@@ -101,16 +139,91 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 				}
 				return val / right.(float64)
 			default:
-				return fmt.Errorf("type:%T not support op:+ ", val)
+				return fmt.Errorf("type:%T not support op:/ ", val)
 			}
 		case "**":
 			switch val := left.(type) {
 			case float64:
 				return math.Pow(val, right.(float64))
 			default:
-				return fmt.Errorf("type:%T not support op:+ ", val)
+				return fmt.Errorf("type:%T not support op:** ", val)
 			}
-
+		case "^": // like **
+			switch val := left.(type) {
+			case float64:
+				return math.Pow(val, right.(float64))
+			default:
+				return fmt.Errorf("type:%T not support op:^ ", val)
+			}
+		case "==":
+			return reflect.DeepEqual(left, right)
+		case "!=":
+			return !reflect.DeepEqual(left, right)
+		case "<=":
+			switch val := left.(type) {
+			case float64:
+				return utils.LE[float64](val, right.(float64))
+			case string:
+				return utils.LE[string](val, right.(string))
+			case time.Time:
+				return utils.LE[int64](val.UnixMilli(), right.(time.Time).UnixMilli())
+			default:
+				return fmt.Errorf("type:%T not support op:%s ", val, ctx.bop.GetText())
+			}
+		case ">=":
+			switch val := left.(type) {
+			case float64:
+				return utils.GE[float64](val, right.(float64))
+			case string:
+				return utils.GE[string](val, right.(string))
+			case time.Time:
+				return utils.GE[int64](val.UnixMilli(), right.(time.Time).UnixMilli())
+			default:
+				return fmt.Errorf("type:%T not support op:%s ", val, ctx.bop.GetText())
+			}
+		case ">":
+			switch val := left.(type) {
+			case float64:
+				return utils.GT[float64](val, right.(float64))
+			case string:
+				return utils.GT[string](val, right.(string))
+			case time.Time:
+				return utils.GT[int64](val.UnixMilli(), right.(time.Time).UnixMilli())
+			default:
+				return fmt.Errorf("type:%T not support op:%s ", val, ctx.bop.GetText())
+			}
+		case "<":
+			switch val := left.(type) {
+			case float64:
+				return utils.LT[float64](val, right.(float64))
+			case string:
+				return utils.LT[string](val, right.(string))
+			case time.Time:
+				return utils.LT[int64](val.UnixMilli(), right.(time.Time).UnixMilli())
+			default:
+				return fmt.Errorf("type:%T not support op:%s ", val, ctx.bop.GetText())
+			}
+		case "<<":
+			switch val := left.(type) {
+			case float64:
+				return float64(int(val) << int(right.(float64)))
+			default:
+				return fmt.Errorf("type:%T not support op:%s ", val, ctx.bop.GetText())
+			}
+		case ">>":
+			switch val := left.(type) {
+			case float64:
+				return float64(int(val) >> int(right.(float64)))
+			default:
+				return fmt.Errorf("type:%T not support op:%s ", val, ctx.bop.GetText())
+			}
+		case "&&":
+			switch val := left.(type) {
+			case bool:
+				return val && right.(bool)
+			default:
+				return fmt.Errorf("type:%T not support op:%s ", val, ctx.bop.GetText())
+			}
 		default:
 			return fmt.Errorf("op:%s not support", ctx.bop.GetText())
 		}
@@ -176,4 +289,14 @@ func (v *ASTEvaluator) VisitArray_value(ctx *Array_valueContext) interface{} {
 	**/
 
 	return ctx.GetText()
+}
+func (v *ASTEvaluator) VisitIdentifier(ctx *IdentifierContext) interface{} {
+	str := ctx.GetText()
+	str = strings.Trim(str, "[]")
+	if str != "" {
+		if val, ok := v.paramsMap[str]; ok {
+			return val
+		}
+	}
+	return fmt.Errorf("param:%s not found", str)
 }
