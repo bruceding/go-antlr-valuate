@@ -77,6 +77,7 @@ array_value : STRING_LITERAL
 // Identifiers
 IDENTIFIER:         Letter LetterOrDigit*
           | '[' Letter LetterOrDigit* ']'
+          | '${' Letter LetterOrDigit* '}'
           ;
 
 fragment LetterOrDigit

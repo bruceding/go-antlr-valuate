@@ -140,6 +140,11 @@ func TestOperatorParse(t *testing.T) {
 			expectValue: float64(2),
 		},
 		{
+			input:       "4 % 2",
+			expectType:  "float64",
+			expectValue: float64(0),
+		},
+		{
 			input:       "1 + 3 * 5",
 			expectType:  "float64",
 			expectValue: float64(16),
@@ -206,6 +211,31 @@ func TestOperatorParse(t *testing.T) {
 		},
 		{
 			input:       "2 > 1 && 4 > 2",
+			expectType:  "bool",
+			expectValue: true,
+		},
+		{
+			input:       "2 > 1 ? 4 : 2",
+			expectType:  "float64",
+			expectValue: float64(4),
+		},
+		{
+			input:       "12 & 10",
+			expectType:  "float64",
+			expectValue: float64(8),
+		},
+		{
+			input:       "12 | 10",
+			expectType:  "float64",
+			expectValue: float64(14),
+		},
+		{
+			input:       "'hi' in (1,2,3,'hi')",
+			expectType:  "bool",
+			expectValue: true,
+		},
+		{
+			input:       "('h' + 'i') in (1,2,3,'hi')",
 			expectType:  "bool",
 			expectValue: true,
 		},
@@ -301,6 +331,12 @@ func TestOperatorParseWithParams(t *testing.T) {
 			expectValue: true,
 			params:      map[string]any{"http-response_body": "service is ok"},
 		},
+		{
+			input:       "${http-response_body} == 'service is ok'",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"http-response_body": "service is ok"},
+		},
 	}
 	for _, tcase := range testCases {
 		lexer := NewGovaluateLexer(antlr.NewInputStream(tcase.input))
@@ -311,7 +347,7 @@ func TestOperatorParseWithParams(t *testing.T) {
 
 		expression := parser.Expression()
 
-		ast := NewASTEvaluatorWithParams(tcase.params)
+		ast := NewASTEvaluatorWithParams(tcase.params, nil)
 		result := ast.Visit(expression)
 
 		fmt.Println(result)
