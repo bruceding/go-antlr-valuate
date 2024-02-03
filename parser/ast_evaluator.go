@@ -22,16 +22,10 @@ const (
 	TIME
 )
 
-type PrimaryValue struct {
-	t     PrimaryType
-	value any
-}
-
 var _ GovaluateVisitor = &ASTEvaluator{}
 
 type ASTEvaluator struct {
 	BaseGovaluateVisitor
-	//primaryMap map[antlr.Parser]PrimaryValue
 	paramsMap          map[string]any
 	preDefineFunctions map[string]ExpressionFunction
 }
@@ -104,17 +98,6 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 				return float64(1 + int(v.Visit(ctx.Expression(0)).(float64)))
 			case "--":
 				return float64(int(v.Visit(ctx.Expression(0)).(float64)) - 1)
-			}
-		} else if ctx.IN() != nil {
-			expr := v.Visit(ctx.Expression(0))
-			arr := v.Visit(ctx.Array())
-			switch val := expr.(type) {
-			case float64:
-				return utils.InArray(val, arr.([]any))
-			case string:
-				return utils.InArray(val, arr.([]any))
-			default:
-				return fmt.Errorf("type:%T not support op:in array", val)
 			}
 		}
 
@@ -265,6 +248,20 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 			default:
 				return fmt.Errorf("type:%T not support op:%s ", val, ctx.bop.GetText())
 			}
+		case "in":
+			arr, ok := right.([]any)
+			if !ok {
+				return fmt.Errorf("right value:%v should be array", right)
+			}
+			switch val := left.(type) {
+			case float64:
+				return utils.InArray(val, arr)
+			case string:
+				return utils.InArray(val, arr)
+			default:
+				return fmt.Errorf("type:%T not support op:in array", val)
+			}
+
 		default:
 			return fmt.Errorf("op:%s not support", ctx.bop.GetText())
 		}

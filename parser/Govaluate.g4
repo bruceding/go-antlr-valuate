@@ -19,7 +19,7 @@ expression: primary
             //| <assoc=right> expression
              // bop=('=' | '+=' | '-=' | '*=' | '/=' | '&=' | '|=' | '^=' | '>>=' | '>>>=' | '<<=' | '%=')
               //expression
-            | expression IN array
+            | expression bop='in' expression 
            ;
 
 expressionList
@@ -36,7 +36,6 @@ primary: FLOAT_LITERAL #float
        | IDENTIFIER #identifier
        ;
 
-IN : 'in' ;
 // float 定义
 FLOAT_LITERAL: [0-9]+
              | (Digits '.' Digits? | '.' Digits) ExponentPart? [fFdD]?

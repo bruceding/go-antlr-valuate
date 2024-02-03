@@ -35,12 +35,12 @@ func govaluateParserInit() {
 	staticData.LiteralNames = []string{
 		"", "'('", "')'", "'+'", "'-'", "'++'", "'--'", "'~'", "'!'", "'*'",
 		"'/'", "'%'", "'**'", "'<<'", "'>>'", "'<='", "'>='", "'>'", "'<'",
-		"'=='", "'!='", "'&'", "'^'", "'|'", "'&&'", "'||'", "'?'", "':'", "','",
-		"'in'",
+		"'=='", "'!='", "'&'", "'^'", "'|'", "'&&'", "'||'", "'?'", "':'", "'in'",
+		"','",
 	}
 	staticData.SymbolicNames = []string{
 		"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "", "", "", "", "", "IN", "FLOAT_LITERAL",
+		"", "", "", "", "", "", "", "", "", "", "", "", "", "FLOAT_LITERAL",
 		"STRING_LITERAL", "BOOL_LITERAL", "IDENTIFIER", "WS",
 	}
 	staticData.RuleNames = []string{
@@ -77,13 +77,13 @@ func govaluateParserInit() {
 		0, 50, 51, 5, 24, 0, 0, 51, 65, 3, 0, 0, 5, 52, 53, 10, 3, 0, 0, 53, 54,
 		5, 25, 0, 0, 54, 65, 3, 0, 0, 4, 55, 56, 10, 2, 0, 0, 56, 57, 5, 26, 0,
 		0, 57, 58, 3, 0, 0, 0, 58, 59, 5, 27, 0, 0, 59, 60, 3, 0, 0, 3, 60, 65,
-		1, 0, 0, 0, 61, 62, 10, 1, 0, 0, 62, 63, 5, 29, 0, 0, 63, 65, 3, 8, 4,
-		0, 64, 25, 1, 0, 0, 0, 64, 28, 1, 0, 0, 0, 64, 31, 1, 0, 0, 0, 64, 34,
+		1, 0, 0, 0, 61, 62, 10, 1, 0, 0, 62, 63, 5, 28, 0, 0, 63, 65, 3, 0, 0,
+		2, 64, 25, 1, 0, 0, 0, 64, 28, 1, 0, 0, 0, 64, 31, 1, 0, 0, 0, 64, 34,
 		1, 0, 0, 0, 64, 37, 1, 0, 0, 0, 64, 40, 1, 0, 0, 0, 64, 43, 1, 0, 0, 0,
 		64, 46, 1, 0, 0, 0, 64, 49, 1, 0, 0, 0, 64, 52, 1, 0, 0, 0, 64, 55, 1,
 		0, 0, 0, 64, 61, 1, 0, 0, 0, 65, 68, 1, 0, 0, 0, 66, 64, 1, 0, 0, 0, 66,
 		67, 1, 0, 0, 0, 67, 1, 1, 0, 0, 0, 68, 66, 1, 0, 0, 0, 69, 74, 3, 0, 0,
-		0, 70, 71, 5, 28, 0, 0, 71, 73, 3, 0, 0, 0, 72, 70, 1, 0, 0, 0, 73, 76,
+		0, 70, 71, 5, 29, 0, 0, 71, 73, 3, 0, 0, 0, 72, 70, 1, 0, 0, 0, 73, 76,
 		1, 0, 0, 0, 74, 72, 1, 0, 0, 0, 74, 75, 1, 0, 0, 0, 75, 3, 1, 0, 0, 0,
 		76, 74, 1, 0, 0, 0, 77, 78, 5, 33, 0, 0, 78, 80, 5, 1, 0, 0, 79, 81, 3,
 		2, 1, 0, 80, 79, 1, 0, 0, 0, 80, 81, 1, 0, 0, 0, 81, 82, 1, 0, 0, 0, 82,
@@ -91,7 +91,7 @@ func govaluateParserInit() {
 		0, 0, 86, 90, 5, 32, 0, 0, 87, 90, 3, 8, 4, 0, 88, 90, 5, 33, 0, 0, 89,
 		84, 1, 0, 0, 0, 89, 85, 1, 0, 0, 0, 89, 86, 1, 0, 0, 0, 89, 87, 1, 0, 0,
 		0, 89, 88, 1, 0, 0, 0, 90, 7, 1, 0, 0, 0, 91, 92, 5, 1, 0, 0, 92, 97, 3,
-		10, 5, 0, 93, 94, 5, 28, 0, 0, 94, 96, 3, 10, 5, 0, 95, 93, 1, 0, 0, 0,
+		10, 5, 0, 93, 94, 5, 29, 0, 0, 94, 96, 3, 10, 5, 0, 95, 93, 1, 0, 0, 0,
 		96, 99, 1, 0, 0, 0, 97, 95, 1, 0, 0, 0, 97, 98, 1, 0, 0, 0, 98, 100, 1,
 		0, 0, 0, 99, 97, 1, 0, 0, 0, 100, 101, 5, 2, 0, 0, 101, 9, 1, 0, 0, 0,
 		102, 103, 7, 7, 0, 0, 103, 11, 1, 0, 0, 0, 7, 23, 64, 66, 74, 80, 89, 97,
@@ -161,7 +161,7 @@ const (
 	GovaluateParserT__25          = 26
 	GovaluateParserT__26          = 27
 	GovaluateParserT__27          = 28
-	GovaluateParserIN             = 29
+	GovaluateParserT__28          = 29
 	GovaluateParserFLOAT_LITERAL  = 30
 	GovaluateParserSTRING_LITERAL = 31
 	GovaluateParserBOOL_LITERAL   = 32
@@ -203,8 +203,6 @@ type IExpressionContext interface {
 	AllExpression() []IExpressionContext
 	Expression(i int) IExpressionContext
 	FunctionCall() IFunctionCallContext
-	IN() antlr.TerminalNode
-	Array() IArrayContext
 
 	// IsExpressionContext differentiates from other interfaces.
 	IsExpressionContext()
@@ -323,26 +321,6 @@ func (s *ExpressionContext) FunctionCall() IFunctionCallContext {
 	}
 
 	return t.(IFunctionCallContext)
-}
-
-func (s *ExpressionContext) IN() antlr.TerminalNode {
-	return s.GetToken(GovaluateParserIN, 0)
-}
-
-func (s *ExpressionContext) Array() IArrayContext {
-	var t antlr.RuleContext
-	for _, ctx := range s.GetChildren() {
-		if _, ok := ctx.(IArrayContext); ok {
-			t = ctx.(antlr.RuleContext)
-			break
-		}
-	}
-
-	if t == nil {
-		return nil
-	}
-
-	return t.(IArrayContext)
 }
 
 func (s *ExpressionContext) GetRuleContext() antlr.RuleContext {
@@ -841,7 +819,10 @@ func (p *GovaluateParser) expression(_p int) (localctx IExpressionContext) {
 				}
 				{
 					p.SetState(62)
-					p.Match(GovaluateParserIN)
+
+					var _m = p.Match(GovaluateParserT__27)
+
+					localctx.(*ExpressionContext).bop = _m
 					if p.HasError() {
 						// Recognition error - abort rule
 						goto errorExit
@@ -849,7 +830,7 @@ func (p *GovaluateParser) expression(_p int) (localctx IExpressionContext) {
 				}
 				{
 					p.SetState(63)
-					p.Array()
+					p.expression(2)
 				}
 
 			case antlr.ATNInvalidAltNumber:
@@ -1016,10 +997,10 @@ func (p *GovaluateParser) ExpressionList() (localctx IExpressionListContext) {
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	for _la == GovaluateParserT__27 {
+	for _la == GovaluateParserT__28 {
 		{
 			p.SetState(70)
-			p.Match(GovaluateParserT__27)
+			p.Match(GovaluateParserT__28)
 			if p.HasError() {
 				// Recognition error - abort rule
 				goto errorExit
@@ -1719,10 +1700,10 @@ func (p *GovaluateParser) Array() (localctx IArrayContext) {
 	}
 	_la = p.GetTokenStream().LA(1)
 
-	for _la == GovaluateParserT__27 {
+	for _la == GovaluateParserT__28 {
 		{
 			p.SetState(93)
-			p.Match(GovaluateParserT__27)
+			p.Match(GovaluateParserT__28)
 			if p.HasError() {
 				// Recognition error - abort rule
 				goto errorExit

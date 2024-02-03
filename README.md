@@ -96,6 +96,13 @@ expr, _ := expression.NewEvaluableExpressionWithFunctions(expString, functions)
 result, _ := expr.Evaluate(nil)
 // result is now "false", the boolean value
 ```
+我们内置了 len 函数来返回 string 或者 array 的长度， 上面的代码可以写成
+```go
+expString := "len('someReallyLongInputString') <= 16"
+expr, _ := expression.NewEvaluableExpression(expString)
+result, _ := expr.Evaluate(nil)
+// result is now "false", the boolean value
+```
 
 ## 支持哪些运算符和数据类型
 * 数值类型, 全部解析成 float64(123.45)
@@ -104,5 +111,20 @@ result, _ := expr.Evaluate(nil)
 * bool 类型， true 或者 false 表示
 * 数组类型，使用 `,` 分隔元素， 使用 `()` 定义。 例如 (1,2,3, 'foo')
 * 使用 `()` 改变运算顺序
+* 前缀修饰，支持 ++ -- - +（一元加与减） !(逻辑非) ~(逐位非)
+* 算术运算符，支持 + - * / %(取模) **(次方，同 ^) 
+* 比较运算符，支持 == != < <= > >=
+* 逻辑运算符，支持 && ||
+* 位运算符 & | 
 * 三元运算符 ? :
+
+## 语法的使用
+antlr4 的语法文件参考 [Govaluate.g4](parser/Govaluate.g4)
+
+如果调整了语法，可以通过 
+```
+cd parser 
+antlr4 -Dlanguage=Go  -visitor Govaluate.g4
+```
+生成代码
 
