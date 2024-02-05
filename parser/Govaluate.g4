@@ -1,6 +1,7 @@
 grammar Govaluate;
 
 expression: primary
+            | expression bop='[' expression ']'
             | '(' expression ')'
             | functionCall
             | prefix=('+'|'-'|'++'|'--') expression

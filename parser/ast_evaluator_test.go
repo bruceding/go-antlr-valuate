@@ -337,6 +337,12 @@ func TestOperatorParseWithParams(t *testing.T) {
 			expectValue: true,
 			params:      map[string]any{"http-response_body": "service is ok"},
 		},
+		{
+			input:       "arr[1]",
+			expectType:  "float64",
+			expectValue: float64(2),
+			params:      map[string]any{"arr": []float64{1, 2, 3, 4}},
+		},
 	}
 	for _, tcase := range testCases {
 		lexer := NewGovaluateLexer(antlr.NewInputStream(tcase.input))

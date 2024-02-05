@@ -261,6 +261,52 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 			default:
 				return fmt.Errorf("type:%T not support op:in array", val)
 			}
+		case "[":
+			index, ok := right.(float64)
+			if !ok {
+				return fmt.Errorf("right value:%v should be number", right)
+			}
+			switch arr := left.(type) {
+			case []any:
+				if len(arr) <= int(index) {
+					return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+				}
+				return arr[int(index)]
+			case []float64:
+				if len(arr) <= int(index) {
+					return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+				}
+				return arr[int(index)]
+			case []string:
+				if len(arr) <= int(index) {
+					return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+				}
+				return arr[int(index)]
+			case []int:
+				if len(arr) <= int(index) {
+					return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+				}
+				return float64(arr[int(index)])
+			case []int64:
+				if len(arr) <= int(index) {
+					return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+				}
+				return float64(arr[int(index)])
+			case []int32:
+				if len(arr) <= int(index) {
+					return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+				}
+				return float64(arr[int(index)])
+			case []float32:
+				if len(arr) <= int(index) {
+					return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+				}
+				return float64(arr[int(index)])
+
+			default:
+				return fmt.Errorf("op:[] not support type:%T", left)
+
+			}
 
 		default:
 			return fmt.Errorf("op:%s not support", ctx.bop.GetText())
