@@ -1,4 +1,4 @@
-package expression
+package valuate
 
 import "testing"
 
@@ -21,10 +21,8 @@ Benchmarks all syntax possibilities in one expression.
 */
 func BenchmarkFullParse(bench *testing.B) {
 
-	var expression string
-
 	// represents all the major syntax possibilities.
-	expression = "2 > 1 &&" +
+	expression := "2 > 1 &&" +
 		"'something' != 'nothing' || " +
 		"'2014-01-20' < 'Wed Jul  8 23:07:35 MDT 2015' && " +
 		"[escapedVariable-name] <= unescapedvariableName &&" +

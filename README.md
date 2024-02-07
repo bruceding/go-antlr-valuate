@@ -12,14 +12,14 @@ go get -u github.com/bruceding/go-antlr-valuate
 直接执行表达式
 
 ```go
-expr, err := expression.NewEvaluableExpression("10 > 0");
+expr, err := valuate.NewEvaluableExpression("10 > 0");
 result, err := expr.Evaluate(nil);
 // result is now set to "true", the bool value.
 ```
 表达式里带有参数，如何执行？
 
 ```go
-expr, err := expression.NewEvaluableExpression("foo > 0");
+expr, err := valuate.NewEvaluableExpression("foo > 0");
 
 parameters := make(map[string]interface{}, 8)
 parameters["foo"] = -1;
@@ -31,7 +31,7 @@ result, err := expr.Evaluate(parameters);
 如何使用 string 类型进行判断？
 
 ```go
-expr, err := expression.NewEvaluableExpression("http_response_body == 'service is ok'");
+expr, err := valuate.NewEvaluableExpression("http_response_body == 'service is ok'");
 
 parameters := make(map[string]interface{}, 8)
 parameters["http_response_body"] = "service is ok";
@@ -43,7 +43,7 @@ result, err := expr.Evaluate(parameters);
 如何使用时间类型进行判断？
 
 ```go
-expr, err := expression.NewEvaluableExpression("'2014-01-02' > '2014-01-01 23:59:59'");
+expr, err := valuate.NewEvaluableExpression("'2014-01-02' > '2014-01-01 23:59:59'");
 result, err := expr.Evaluate(nil);
 
 // result is now set to true
@@ -51,7 +51,7 @@ result, err := expr.Evaluate(nil);
 上面的例子都是 bool 类型的返回， 也可以直接计算得出结果
 
 ```go
-expr, err := expression.NewEvaluableExpression("(mem_used / total_mem) * 100");
+expr, err := valuate.NewEvaluableExpression("(mem_used / total_mem) * 100");
 
 parameters := make(map[string]interface{}, 8)
 parameters["total_mem"] = 1024;
@@ -91,7 +91,7 @@ functions := map[string]govaluate.ExpressionFunction {
 	}
 
 expString := "strlen('someReallyLongInputString') <= 16"
-expr, _ := expression.NewEvaluableExpressionWithFunctions(expString, functions)
+expr, _ := valuate.NewEvaluableExpressionWithFunctions(expString, functions)
 
 result, _ := expr.Evaluate(nil)
 // result is now "false", the boolean value
@@ -99,10 +99,31 @@ result, _ := expr.Evaluate(nil)
 我们内置了 len 函数来返回 string 或者 array 的长度， 上面的代码可以写成
 ```go
 expString := "len('someReallyLongInputString') <= 16"
-expr, _ := expression.NewEvaluableExpression(expString)
+expr, _ := valuate.NewEvaluableExpression(expString)
 result, _ := expr.Evaluate(nil)
 // result is now "false", the boolean value
 ```
+
+## 访问器
+
+如果变量中有 struct 的类型参数，可以按照通常的方式访问字段或者方法。如果 foo 是个 struct, 有变量 Bar, 可以这样访问
+```
+foo.Bar > 2
+```
+也可以嵌套访问， 比如 Bar 也是一个 struct, 拥有变量 F, 
+
+```
+foo.Bar.F > 2
+```
+同样的，访问方法也是类似的。 如果 foo 是一个 struct, 拥有字段名称 Function, 但是 Function 是一个方法， 可以这样访问
+```
+foo.Function() > 2
+```
+如果 Function 可以有参数，可以这样访问
+```
+foo.Function(1, 2) > 2
+```
+那么，如果 foo 拥有一个方法，不管是通过 struct 还是指针定义的，都可以使用上面的形势进行访问。具体的测试可以参考 TestOperatorParseWithFunction， 在(这里)[parser/ast_evaluator_test.go] 能找到。
 
 ## 支持哪些运算符和数据类型
 * 数值类型, 全部解析成 float64(123.45)
