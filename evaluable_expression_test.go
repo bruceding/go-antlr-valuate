@@ -47,12 +47,6 @@ func TestEvaluableExpressionResult(t *testing.T) {
 			params:      map[string]any{"http_response_body": "service is ok"},
 		},
 		{
-			input:       "[http-response_body] == 'service is ok'",
-			expectType:  "bool",
-			expectValue: true,
-			params:      map[string]any{"http-response_body": "service is ok"},
-		},
-		{
 			input:       "${http-response_body} == 'service is ok'",
 			expectType:  "bool",
 			expectValue: true,
@@ -148,6 +142,14 @@ func TestEvaluableExpressionFunctions(t *testing.T) {
 	expression, _ := NewEvaluableExpressionWithFunctions(expString, functions)
 
 	result, _ := expression.Evaluate(nil)
+	if result.(bool) != false {
+		t.Fatal("expect result wrong, expected false")
+	}
+
+	expString = "len('someReallyLongInputString') <= 16"
+	expression, _ = NewEvaluableExpressionWithFunctions(expString, map[string]parser.ExpressionFunction{})
+
+	result, _ = expression.Evaluate(nil)
 	if result.(bool) != false {
 		t.Fatal("expect result wrong, expected false")
 	}

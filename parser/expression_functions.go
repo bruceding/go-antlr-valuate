@@ -12,9 +12,9 @@ var (
 		"len": func(args ...interface{}) (interface{}, error) {
 			switch val := args[0].(type) {
 			case string:
-				return len(val), nil
+				return float64(len(val)), nil
 			case []any:
-				return len(val), nil
+				return float64(len(val)), nil
 			default:
 				return nil, fmt.Errorf("len() function argument must be string or array, but got %T", val)
 			}

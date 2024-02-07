@@ -71,10 +71,6 @@ result, err := expr.Evaluate(parameters);
 如果想把 response-time 当成一个参数怎么处理？ 可以写成
 
 ```
-[response-time] < 100
-```
-或者 
-```
 ${response-time} < 100
 ```
 ## 函数的支持
@@ -83,7 +79,7 @@ ${response-time} < 100
 
 如果实现自定义的 function ， 可以写成
 ```go
-functions := map[string]govaluate.ExpressionFunction {
+functions := map[string]parser.ExpressionFunction {
 		"strlen": func(args ...interface{}) (interface{}, error) {
 			length := len(args[0].(string))
 			return (float64)(length), nil
@@ -105,6 +101,14 @@ result, _ := expr.Evaluate(nil)
 ```
 
 ## 访问器
+如果变量中有数组的类型参数， 可以通过下标来访问数组元素，arr 是一个数组，访问第一个元素
+```
+arr[1]
+```
+系统支持数组的定义，下标也可以通过参数直接传递, a 是一个参数
+```
+(1,2,3,4)[a]
+```
 
 如果变量中有 struct 的类型参数，可以按照通常的方式访问字段或者方法。如果 foo 是个 struct, 有变量 Bar, 可以这样访问
 ```

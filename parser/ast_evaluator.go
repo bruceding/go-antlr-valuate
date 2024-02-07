@@ -316,6 +316,8 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 				return utils.LE[string](val, right.(string))
 			case time.Time:
 				return utils.LE[int64](val.UnixMilli(), right.(time.Time).UnixMilli())
+			case int:
+				return utils.LE[float64](float64(val), right.(float64))
 			default:
 				return fmt.Errorf("type:%T not support op:%s ", val, ctx.bop.GetText())
 			}
@@ -327,6 +329,8 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 				return utils.GE[string](val, right.(string))
 			case time.Time:
 				return utils.GE[int64](val.UnixMilli(), right.(time.Time).UnixMilli())
+			case int:
+				return utils.GE[float64](float64(val), right.(float64))
 			default:
 				return fmt.Errorf("type:%T not support op:%s ", val, ctx.bop.GetText())
 			}
@@ -338,6 +342,8 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 				return utils.GT[string](val, right.(string))
 			case time.Time:
 				return utils.GT[int64](val.UnixMilli(), right.(time.Time).UnixMilli())
+			case int:
+				return utils.GT[float64](float64(val), right.(float64))
 			default:
 				return fmt.Errorf("type:%T not support op:%s, value:%v", val, ctx.bop.GetText(), left)
 			}
@@ -349,6 +355,8 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 				return utils.LT[string](val, right.(string))
 			case time.Time:
 				return utils.LT[int64](val.UnixMilli(), right.(time.Time).UnixMilli())
+			case int:
+				return utils.LT[float64](float64(val), right.(float64))
 			default:
 				return fmt.Errorf("type:%T not support op:%s ", val, ctx.bop.GetText())
 			}
@@ -443,7 +451,7 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 				return float64(arr[int(index)])
 
 			default:
-				return fmt.Errorf("op:[] not support type:%T", left)
+				return fmt.Errorf("op:[] not support type:%T, value:%v", left, left)
 
 			}
 
