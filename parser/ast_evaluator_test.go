@@ -343,6 +343,215 @@ func TestOperatorParseWithParams(t *testing.T) {
 			expectValue: float64(2),
 			params:      map[string]any{"arr": []float64{1, 2, 3, 4}},
 		},
+		{
+			input:       "(1,2,3,4)[1]",
+			expectType:  "float64",
+			expectValue: float64(2),
+			params:      map[string]any{},
+		},
+		{
+			input:       "foo.Bar > 2",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"foo": struct{ Bar int }{Bar: 4}},
+		},
+		{
+			input:       "foo.Bar.F > 2",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"foo": struct{ Bar struct{ F int } }{Bar: struct{ F int }{F: 4}}},
+		},
+		{
+			input:       "foo.Bar.F > 2",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"foo": struct{ Bar *struct{ F int } }{Bar: &struct{ F int }{F: 4}}},
+		},
+	}
+	for _, tcase := range testCases {
+		lexer := NewGovaluateLexer(antlr.NewInputStream(tcase.input))
+
+		stream := antlr.NewCommonTokenStream(lexer, antlr.LexerDefaultTokenChannel)
+
+		parser := NewGovaluateParser(stream)
+
+		expression := parser.Expression()
+
+		ast := NewASTEvaluatorWithParams(tcase.params, nil)
+		result := ast.Visit(expression)
+
+		fmt.Println(result)
+		switch val := result.(type) {
+		case []any:
+			if tcase.expectType != "[]any" {
+				t.Fatal("expect type is []any")
+			}
+
+			if reflect.DeepEqual(val, tcase.expectValue) != true {
+				t.Fatal("expect value is not equal")
+			}
+		case float64:
+			if tcase.expectType != "float64" {
+				t.Fatal("expect type is float64")
+			}
+			if val != tcase.expectValue {
+				t.Fatal("expect value is not equal")
+			}
+		case string:
+			if tcase.expectType != "string" {
+				t.Fatal("expect type is string")
+			}
+			if val != tcase.expectValue {
+				t.Fatal("expect value is not equal")
+			}
+		case bool:
+			if tcase.expectType != "bool" {
+				t.Fatal("expect type is bool")
+			}
+			if val != tcase.expectValue {
+				t.Fatal("expect value is not equal")
+			}
+		case time.Time:
+			if tcase.expectType != "Time" {
+				t.Fatal("expect type is Time")
+			}
+			if val != tcase.expectValue {
+				t.Fatal("expect value is not equal")
+			}
+		case error:
+			t.Fatal(val)
+		default:
+			fmt.Println(t)
+		}
+
+	}
+
+}
+
+type Foo struct {
+	Bar      int
+	Function func() float64
+}
+type Foo1 struct {
+	Function func(a, b int) float64
+}
+
+type Foo2 struct {
+}
+
+func (f Foo2) Function() float64 {
+	return 4
+}
+func (f *Foo2) Function1() float64 {
+	return 4
+}
+
+func (f *Foo2) Function2(a, b int) float64 {
+	return float64(a + b)
+}
+
+type IBar interface {
+	Sum(a, b int) float64
+}
+type Foo3 struct {
+	Bar  Bar1
+	Bar2 *Bar1
+	Bar3 IBar
+}
+
+var _ IBar = Bar1{}
+var _ IBar = &Bar2{}
+
+type Bar1 struct {
+}
+
+func (ba Bar1) Sum(a, b int) float64 {
+	return float64(a + b)
+}
+
+type Bar2 struct {
+}
+
+func (ba *Bar2) Sum(a, b int) float64 {
+	return float64(a + b)
+}
+
+func TestOperatorParseWithFunction(t *testing.T) {
+
+	f := Foo2{}
+	f.Function1()
+	testCases := []struct {
+		input       string
+		expectType  string
+		expectValue any
+		params      map[string]any
+	}{
+		{
+			input:       "foo.Function() > 2",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"foo": Foo{Function: func() float64 { return 4 }}},
+		},
+		{
+			input:       "foo.Function() > 2",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"foo": &Foo{Function: func() float64 { return 4 }}},
+		},
+		{
+			input:       "foo.Function(1,2) > 2",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"foo": Foo1{Function: func(a, b int) float64 { return float64(a + b) }}},
+		},
+		{
+			input:       "foo.Function() > 2",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"foo": Foo2{}},
+		},
+		{
+			input:       "foo.Function1() > 2",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"foo": &Foo2{}},
+		},
+		{
+			input:       "foo.Function2(1, 2) > 2",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"foo": Foo2{}},
+		},
+		{
+			input:       "foo.Bar.Sum(1, 2) > 2",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"foo": Foo3{Bar: Bar1{}}},
+		},
+		{
+			input:       "foo.Bar2.Sum(1, 2) > 2",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"foo": Foo3{Bar2: &Bar1{}}},
+		},
+		{
+			input:       "foo.Bar3.Sum(1, 2) > 2",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"foo": Foo3{Bar3: Bar1{}}},
+		},
+		{
+			input:       "foo.Bar3.Sum(1,1) > 2",
+			expectType:  "bool",
+			expectValue: false,
+			params:      map[string]any{"foo": Foo3{Bar3: &Bar2{}}},
+		},
+		{
+			input:       "foo.Bar3.Sum(a , b) > 2",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"foo": Foo3{Bar3: &Bar2{}}, "a": 1, "b": 2},
+		},
 	}
 	for _, tcase := range testCases {
 		lexer := NewGovaluateLexer(antlr.NewInputStream(tcase.input))

@@ -1,18 +1,18 @@
 grammar Govaluate;
 
 expression: primary
+            | expression bop='.' ( IDENTIFIER | functionCall)
             | expression bop='[' expression ']'
             | '(' expression ')'
             | functionCall
             | prefix=('+'|'-'|'++'|'--') expression
             | prefix=('~'|'!') expression
-            | expression bop=('*'|'/'|'%'|'**') expression
+            | expression bop=('*'|'/'|'%'|'**'|'^') expression
             | expression bop=('+'|'-') expression
             | expression bop=('<<' |  '>>') expression
             | expression bop=('<=' | '>=' | '>' | '<') expression
             | expression bop=('==' | '!=') expression
             | expression bop='&' expression
-            | expression bop='^' expression
             | expression bop='|' expression
             | expression bop='&&' expression
             | expression bop='||' expression

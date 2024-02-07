@@ -99,6 +99,145 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 			case "--":
 				return float64(int(v.Visit(ctx.Expression(0)).(float64)) - 1)
 			}
+		} else if ctx.bop != nil {
+			left := v.Visit(ctx.Expression(0))
+			if ctx.bop.GetText() == "." {
+				// get field value from struct
+				if ctx.IDENTIFIER() != nil {
+					value := reflect.ValueOf(left)
+					if value.Kind() == reflect.Ptr || value.Kind() == reflect.Interface {
+						value = value.Elem()
+					}
+
+					// check value is a struct
+					if value.Kind() != reflect.Struct {
+						return fmt.Errorf("the value:%v is not a struct", value)
+					}
+
+					field, ok := value.Type().FieldByName(ctx.IDENTIFIER().GetText())
+					if !ok {
+						return fmt.Errorf("the struct:%v does not contain a field named '%s'", value, ctx.IDENTIFIER().GetText())
+					}
+
+					fieldValue := value.FieldByName(ctx.IDENTIFIER().GetText())
+					if !fieldValue.IsValid() || !fieldValue.CanInterface() {
+						return fmt.Errorf("the field:%s is not valid or cannot be accessed", ctx.IDENTIFIER().GetText())
+					}
+
+					fieldValueInterface := fieldValue.Interface()
+					switch field.Type.Kind() {
+					case reflect.String:
+						return fieldValueInterface.(string)
+					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint64:
+						return float64(utils.ToInt(fieldValueInterface))
+					case reflect.Float32:
+						return float64(fieldValueInterface.(float32))
+					case reflect.Float64:
+						return fieldValueInterface.(float64)
+					case reflect.Bool:
+						return fieldValueInterface.(bool)
+					default:
+						return fieldValueInterface
+					}
+				} else if ctx.FunctionCall() != nil {
+					value := reflect.ValueOf(left)
+					if value.Kind() == reflect.Ptr || value.Kind() == reflect.Interface {
+						value = value.Elem()
+					}
+
+					// check value is a struct
+					if value.Kind() != reflect.Struct {
+						return fmt.Errorf("the value:%v is not a struct", value)
+					}
+
+					funcName := ctx.FunctionCall().IDENTIFIER().GetText()
+					_, ok := value.Type().FieldByName(funcName)
+					if ok {
+						// funcName is the filed of the value, its type is a function
+						fieldFuncValue := value.FieldByName(funcName)
+						if !fieldFuncValue.IsValid() || !fieldFuncValue.CanInterface() {
+							return fmt.Errorf("the field:%s is not valid or cannot be accessed", funcName)
+						}
+						if fieldFuncValue.Type().Kind() != reflect.Func {
+							return fmt.Errorf("the field:%s is not func ,but get kind:%v", funcName, fieldFuncValue.Type().Kind())
+						}
+
+						var in []reflect.Value
+						for i := 0; i < fieldFuncValue.Type().NumIn(); i++ {
+							val := v.Visit(ctx.FunctionCall().ExpressionList().Expression(i))
+							in = append(in, utils.ReflectValueof(fieldFuncValue.Type().In(i), val))
+						}
+						out := fieldFuncValue.Call(in)
+						errorType := reflect.TypeOf((*error)(nil)).Elem() // 获取 error 接口的类型
+						for _, val := range out {
+							if val.Kind() == reflect.Interface && val.Type().Implements(errorType) {
+								return val.Interface()
+							}
+							if val.Type().Kind() == reflect.Ptr && val.Elem().Type().Implements(errorType) {
+								return val.Interface()
+							}
+						}
+
+						if len(out) == 0 {
+							return nil
+						}
+
+						return out[0].Interface()
+
+					} else {
+						var (
+							m  reflect.Method
+							ok bool
+						)
+						// funcName is the method name of the value
+						m, ok = value.Type().MethodByName(funcName)
+						if !ok {
+							m, ok = reflect.PointerTo(value.Type()).MethodByName(funcName)
+							if !ok {
+								return fmt.Errorf("value:%v not have the method name:'%s'", left, funcName)
+							}
+						}
+						if !m.Func.IsValid() || !m.Func.CanInterface() {
+							return fmt.Errorf("the method:%s is not valid or cannot be accessed", funcName)
+						}
+						var in []reflect.Value
+
+						if m.Func.Type().In(0).Kind() == reflect.Struct { // method receiver is struct
+							in = append(in, value)
+						} else if m.Func.Type().In(0).Kind() == reflect.Pointer { // method receiver is pointer
+							if value.CanAddr() {
+								in = append(in, value.Addr())
+							} else {
+								pointerValue := reflect.New(value.Type())
+								pointerValue.Elem().Set(value)
+								in = append(in, pointerValue)
+							}
+						}
+						for i := 1; i < m.Func.Type().NumIn(); i++ {
+							val := v.Visit(ctx.FunctionCall().ExpressionList().Expression(i - 1))
+							in = append(in, utils.ReflectValueof(m.Func.Type().In(i), val))
+						}
+						out := m.Func.Call(in)
+						errorType := reflect.TypeOf((*error)(nil)).Elem() // 获取 error 接口的类型
+						for _, val := range out {
+							if val.Kind() == reflect.Interface && val.Type().Implements(errorType) {
+								return val.Interface()
+							}
+							if val.Type().Kind() == reflect.Ptr && val.Elem().Type().Implements(errorType) {
+								return val.Interface()
+							}
+						}
+
+						if len(out) == 0 {
+							return nil
+						}
+
+						return out[0].Interface()
+
+					}
+
+				}
+			}
 		}
 
 		return v.Visit(ctx.Expression(0))
@@ -200,7 +339,7 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 			case time.Time:
 				return utils.GT[int64](val.UnixMilli(), right.(time.Time).UnixMilli())
 			default:
-				return fmt.Errorf("type:%T not support op:%s ", val, ctx.bop.GetText())
+				return fmt.Errorf("type:%T not support op:%s, value:%v", val, ctx.bop.GetText(), left)
 			}
 		case "<":
 			switch val := left.(type) {

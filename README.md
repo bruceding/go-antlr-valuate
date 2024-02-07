@@ -117,6 +117,7 @@ result, _ := expr.Evaluate(nil)
 * 逻辑运算符，支持 && ||
 * 位运算符 & | 
 * 三元运算符 ? :
+* 访问数组坐标 []
 
 ## 语法的使用
 antlr4 的语法文件参考 [Govaluate.g4](parser/Govaluate.g4)
