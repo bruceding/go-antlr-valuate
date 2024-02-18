@@ -409,50 +409,81 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 				return fmt.Errorf("type:%T not support op:in array", val)
 			}
 		case "[":
-			index, ok := right.(float64)
-			if !ok {
-				return fmt.Errorf("right value:%v should be number", right)
-			}
-			switch arr := left.(type) {
-			case []any:
-				if len(arr) <= int(index) {
-					return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+			val := reflect.ValueOf(left)
+			if val.Kind() == reflect.Slice {
+				index, ok := right.(float64)
+				if !ok {
+					return fmt.Errorf("right value:%v should be number", right)
 				}
-				return arr[int(index)]
-			case []float64:
-				if len(arr) <= int(index) {
-					return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
-				}
-				return arr[int(index)]
-			case []string:
-				if len(arr) <= int(index) {
-					return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
-				}
-				return arr[int(index)]
-			case []int:
-				if len(arr) <= int(index) {
-					return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
-				}
-				return float64(arr[int(index)])
-			case []int64:
-				if len(arr) <= int(index) {
-					return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
-				}
-				return float64(arr[int(index)])
-			case []int32:
-				if len(arr) <= int(index) {
-					return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
-				}
-				return float64(arr[int(index)])
-			case []float32:
-				if len(arr) <= int(index) {
-					return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
-				}
-				return float64(arr[int(index)])
+				switch arr := left.(type) {
+				case []any:
+					if len(arr) <= int(index) {
+						return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+					}
+					return arr[int(index)]
+				case []float64:
+					if len(arr) <= int(index) {
+						return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+					}
+					return arr[int(index)]
+				case []string:
+					if len(arr) <= int(index) {
+						return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+					}
+					return arr[int(index)]
+				case []int:
+					if len(arr) <= int(index) {
+						return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+					}
+					return float64(arr[int(index)])
+				case []int64:
+					if len(arr) <= int(index) {
+						return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+					}
+					return float64(arr[int(index)])
+				case []int32:
+					if len(arr) <= int(index) {
+						return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+					}
+					return float64(arr[int(index)])
+				case []float32:
+					if len(arr) <= int(index) {
+						return fmt.Errorf("index:%d exceed array:%v length:%d", int(index), arr, len(arr))
+					}
+					return float64(arr[int(index)])
 
-			default:
+				default:
+					return fmt.Errorf("op:[] not support type:%T, value:%v", left, left)
+
+				}
+			} else if val.Kind() == reflect.Map {
+				index, ok := right.(string)
+				if !ok {
+					return fmt.Errorf("right value:%v should be string", right)
+				}
+				switch m := left.(type) {
+				case map[string]string:
+					return m[index]
+				case map[string]float64:
+					return m[index]
+
+				case map[string]any:
+					return m[index]
+				case map[string]int:
+					return float64(m[index])
+				case map[string]int64:
+					return float64(m[index])
+				case map[string]float32:
+					return float64(m[index])
+				case map[string]bool:
+					return m[index]
+				default:
+					return fmt.Errorf("op:[] not support type:%T, value:%v", left, left)
+
+				}
+
+			} else {
 				return fmt.Errorf("op:[] not support type:%T, value:%v", left, left)
-
 			}
 
 		default:

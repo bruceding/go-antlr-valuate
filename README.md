@@ -129,6 +129,11 @@ foo.Function(1, 2) > 2
 ```
 那么，如果 foo 拥有一个方法，不管是通过 struct 还是指针定义的，都可以使用上面的形式进行访问。具体的测试可以参考 TestOperatorParseWithFunction， 在[这里](parser/ast_evaluator_test.go) 能找到。
 
+如果 foo 是个 map 数组, 有索引 bar, 可以这样访问
+```
+foo['bar'] > 2
+```
+
 ## 支持哪些运算符和数据类型
 * 数值类型, 全部解析成 float64(123.45)
 * string 类型， 使用 `'` ('foo')

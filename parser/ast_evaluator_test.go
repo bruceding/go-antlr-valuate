@@ -350,6 +350,24 @@ func TestOperatorParseWithParams(t *testing.T) {
 			params:      map[string]any{"a": 2},
 		},
 		{
+			input:       "foo['a']",
+			expectType:  "string",
+			expectValue: "b",
+			params:      map[string]any{"foo": map[string]string{"a": "b"}},
+		},
+		{
+			input:       "foo[a]",
+			expectType:  "string",
+			expectValue: "b",
+			params:      map[string]any{"foo": map[string]string{"a": "b"}, "a": "a"},
+		},
+		{
+			input:       "foo['bar'] > 2",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"foo": map[string]int{"bar": 4}},
+		},
+		{
 			input:       "foo.Bar > 2",
 			expectType:  "bool",
 			expectValue: true,
@@ -421,7 +439,7 @@ func TestOperatorParseWithParams(t *testing.T) {
 		case error:
 			t.Fatal(val)
 		default:
-			fmt.Println(t)
+			t.Fatal(val)
 		}
 
 	}
