@@ -8,6 +8,12 @@ import "github.com/antlr4-go/antlr/v4"
 type GovaluateVisitor interface {
 	antlr.ParseTreeVisitor
 
+	// Visit a parse tree produced by GovaluateParser#prog.
+	VisitProg(ctx *ProgContext) interface{}
+
+	// Visit a parse tree produced by GovaluateParser#statement.
+	VisitStatement(ctx *StatementContext) interface{}
+
 	// Visit a parse tree produced by GovaluateParser#expression.
 	VisitExpression(ctx *ExpressionContext) interface{}
 

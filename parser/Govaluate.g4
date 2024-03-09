@@ -1,4 +1,8 @@
 grammar Govaluate;
+prog : statement+;
+
+statement : statementExpression=expression ';'
+           ;
 
 expression: primary
             | expression bop='.' ( IDENTIFIER | functionCall)
@@ -17,10 +21,11 @@ expression: primary
             | expression bop='&&' expression
             | expression bop='||' expression
             | expression bop='?' expression ':' expression
-            //| <assoc=right> expression
+            | <assoc=right> expression
              // bop=('=' | '+=' | '-=' | '*=' | '/=' | '&=' | '|=' | '^=' | '>>=' | '>>>=' | '<<=' | '%=')
-              //expression
-            | expression bop='in' expression 
+              bop=('=' | '+=' | '-=' | '*=' | '/=')
+              expression
+            | expression bop='in' expression
            ;
 
 expressionList

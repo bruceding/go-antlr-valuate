@@ -8,6 +8,12 @@ import "github.com/antlr4-go/antlr/v4"
 type GovaluateListener interface {
 	antlr.ParseTreeListener
 
+	// EnterProg is called when entering the prog production.
+	EnterProg(c *ProgContext)
+
+	// EnterStatement is called when entering the statement production.
+	EnterStatement(c *StatementContext)
+
 	// EnterExpression is called when entering the expression production.
 	EnterExpression(c *ExpressionContext)
 
@@ -37,6 +43,12 @@ type GovaluateListener interface {
 
 	// EnterArray_value is called when entering the array_value production.
 	EnterArray_value(c *Array_valueContext)
+
+	// ExitProg is called when exiting the prog production.
+	ExitProg(c *ProgContext)
+
+	// ExitStatement is called when exiting the statement production.
+	ExitStatement(c *StatementContext)
 
 	// ExitExpression is called when exiting the expression production.
 	ExitExpression(c *ExpressionContext)

@@ -21,6 +21,18 @@ func (s *BaseGovaluateListener) EnterEveryRule(ctx antlr.ParserRuleContext) {}
 // ExitEveryRule is called when any rule is exited.
 func (s *BaseGovaluateListener) ExitEveryRule(ctx antlr.ParserRuleContext) {}
 
+// EnterProg is called when production prog is entered.
+func (s *BaseGovaluateListener) EnterProg(ctx *ProgContext) {}
+
+// ExitProg is called when production prog is exited.
+func (s *BaseGovaluateListener) ExitProg(ctx *ProgContext) {}
+
+// EnterStatement is called when production statement is entered.
+func (s *BaseGovaluateListener) EnterStatement(ctx *StatementContext) {}
+
+// ExitStatement is called when production statement is exited.
+func (s *BaseGovaluateListener) ExitStatement(ctx *StatementContext) {}
+
 // EnterExpression is called when production expression is entered.
 func (s *BaseGovaluateListener) EnterExpression(ctx *ExpressionContext) {}
 

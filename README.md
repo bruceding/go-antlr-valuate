@@ -10,7 +10,7 @@ Inspired by [govaluate](https://github.com/Knetic/govaluate), this implementatio
 go get -u github.com/bruceding/go-antlr-valuate
 ```
 
-## How to Install
+## How to Use 
 
 Execute an expression directly:
 

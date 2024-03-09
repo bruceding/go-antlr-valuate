@@ -12,16 +12,6 @@ import (
 	"github.com/bruceding/go-antlr-valuate/utils"
 )
 
-type PrimaryType int
-
-const (
-	STRING PrimaryType = iota + 1
-	FLOAT
-	BOOL
-	ARRAY
-	TIME
-)
-
 var _ GovaluateVisitor = &ASTEvaluator{}
 
 type ASTEvaluator struct {

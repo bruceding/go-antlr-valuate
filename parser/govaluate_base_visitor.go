@@ -8,6 +8,14 @@ type BaseGovaluateVisitor struct {
 	*antlr.BaseParseTreeVisitor
 }
 
+func (v *BaseGovaluateVisitor) VisitProg(ctx *ProgContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseGovaluateVisitor) VisitStatement(ctx *StatementContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseGovaluateVisitor) VisitExpression(ctx *ExpressionContext) interface{} {
 	return v.VisitChildren(ctx)
 }
