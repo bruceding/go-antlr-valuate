@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/antlr4-go/antlr/v4"
@@ -45,6 +44,15 @@ func TestScanVariable(t *testing.T) {
 				IndexnName:   "index",
 			},
 		},
+		{
+			input: "a[b] = 'string';",
+			expectValue: &Variable{
+				Name:               "a",
+				VariableType:       ARRAYORMAP,
+				Index:              -1,
+				IndexnVariableName: "b",
+			},
+		},
 	}
 	for _, tcase := range testCases {
 		lexer := NewGovaluateLexer(antlr.NewInputStream(tcase.input))
@@ -61,7 +69,6 @@ func TestScanVariable(t *testing.T) {
 		ctx := prog.Statement(0).GetStatementExpression().Expression(0)
 
 		expectVariable := scan.node2Variables[ctx]
-		fmt.Println(expectVariable.String())
 		if expectVariable == nil {
 			t.Fatal("expected variable empty")
 		} else {

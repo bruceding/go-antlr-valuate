@@ -40,6 +40,8 @@ func (s *VariableScanListener) ExitExpression(ctx *ExpressionContext) {
 					leftVariable.Index = int(rightVariable.Value.(float64))
 				} else if rightVariable.VariableType == STRING {
 					leftVariable.IndexnName = rightVariable.Value.(string)
+				} else {
+					leftVariable.IndexnVariableName = rightVariable.Name
 				}
 
 				s.node2Variables[ctx] = leftVariable
