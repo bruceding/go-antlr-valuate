@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strconv"
 )
@@ -118,5 +119,30 @@ func ToStringWithDefaultValue(i interface{}, defaultVal string) string {
 		return value.String()
 	default:
 		return defaultVal
+	}
+}
+
+func ToFloat(i interface{}) (float64, error) {
+	switch value := i.(type) {
+	case float64:
+		return value, nil
+	case int:
+		return float64(value), nil
+	case int32:
+		return float64(value), nil
+	case int64:
+		return float64(value), nil
+	case uint32:
+		return float64(value), nil
+	case uint:
+		return float64(value), nil
+	case string:
+		if f, err := strconv.ParseFloat(value, 64); err == nil {
+			return f, nil
+		} else {
+			return 0, err
+		}
+	default:
+		return 0, fmt.Errorf("value:%v not convertible to float", i)
 	}
 }

@@ -8,10 +8,6 @@ import (
 )
 
 func TestStatement(t *testing.T) {
-	paramMap := map[string]any{
-		"b":      4,
-		"values": []int{1, 2, 3},
-	}
 	testCases := []struct {
 		input       string
 		expectValue any
@@ -42,6 +38,31 @@ func TestStatement(t *testing.T) {
 			expectValue: []any{float64(4), float64(2), float64(3)},
 			name:        "output_values",
 		},
+		{
+			input:       "sum = 0;\n sum += b; sum +=b;",
+			expectValue: float64(8),
+			name:        "sum",
+		},
+		{
+			input:       "values[0] +=b;",
+			expectValue: []int{5, 2, 3},
+			name:        "values",
+		},
+		{
+			input:       "c = values[2] - values[0];",
+			expectValue: float64(2),
+			name:        "c",
+		},
+		{
+			input:       "c = b;\n c -= values[1];",
+			expectValue: float64(2),
+			name:        "c",
+		},
+		{
+			input:       "a = 8;\n  a /= b;",
+			expectValue: float64(2),
+			name:        "a",
+		},
 	}
 	for _, tcase := range testCases {
 		lexer := NewGovaluateLexer(antlr.NewInputStream(tcase.input))
@@ -54,6 +75,10 @@ func TestStatement(t *testing.T) {
 
 		scan := NewVariableScanListener()
 		antlr.ParseTreeWalkerDefault.Walk(scan, prog)
+		paramMap := map[string]any{
+			"b":      4,
+			"values": []int{1, 2, 3},
+		}
 
 		ast := NewStatementASTEvaluatorWithParams(paramMap, make(map[string]ExpressionFunction), scan.node2Variables)
 		ast.Visit(prog)

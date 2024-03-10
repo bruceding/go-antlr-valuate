@@ -543,6 +543,140 @@ func (v *StatementASTEvaluator) VisitExpression(ctx *ExpressionContext) interfac
 					}
 				}
 			}
+		case "+=", "-=", "*=", "/=":
+			leftVariable := v.node2Variables[ctx.Expression(0)]
+			if leftVariable == nil || leftVariable.Name == "" {
+				return fmt.Errorf("left variable not found")
+			}
+			paramValue, exist := v.paramsMap[leftVariable.Name]
+			if !exist {
+				return fmt.Errorf("variable %v not found", leftVariable.Name)
+			} else {
+				rightValue, err := utils.ToFloat(right)
+				if err != nil {
+					return err
+				}
+				if leftVariable.VariableType == UNKNOWN {
+					leftValue, err := utils.ToFloat(v.paramsMap[leftVariable.Name])
+					if err != nil {
+						return err
+					}
+					switch ctx.bop.GetText() {
+					case "+=":
+						v.paramsMap[leftVariable.Name] = leftValue + rightValue
+					case "-=":
+						v.paramsMap[leftVariable.Name] = leftValue - rightValue
+					case "*=":
+						v.paramsMap[leftVariable.Name] = leftValue * rightValue
+					case "/=":
+						if rightValue == 0 {
+							return fmt.Errorf("divide by zero")
+						}
+						v.paramsMap[leftVariable.Name] = leftValue / rightValue
+					}
+				} else if leftVariable.VariableType == ARRAYORMAP {
+					vType := reflect.TypeOf(paramValue)
+					if vType.Kind() == reflect.Slice {
+						index := -1
+						if leftVariable.Index >= 0 {
+							index = leftVariable.Index
+						} else if leftVariable.IndexnVariableName != "" {
+							index = utils.ToIntWithDefaultValue(v.paramsMap[leftVariable.IndexnVariableName], -1)
+						}
+						if index == -1 {
+							return fmt.Errorf("invalid index, variable:%v", leftVariable.String())
+						}
+						switch sliceValue := paramValue.(type) {
+						case []any:
+							leftValue, err := utils.ToFloat(sliceValue[index])
+							if err != nil {
+								return err
+							}
+							switch ctx.bop.GetText() {
+							case "+=":
+								sliceValue[index] = leftValue + rightValue
+							case "-=":
+								sliceValue[index] = leftValue - rightValue
+							case "*=":
+								sliceValue[index] = leftValue * rightValue
+							case "/=":
+								if rightValue == 0 {
+									return fmt.Errorf("divide by zero")
+								}
+								sliceValue[index] = leftValue / rightValue
+							}
+						case []float64:
+							leftValue, err := utils.ToFloat(sliceValue[index])
+							if err != nil {
+								return err
+							}
+							switch ctx.bop.GetText() {
+							case "+=":
+								sliceValue[index] = leftValue + rightValue
+							case "-=":
+								sliceValue[index] = leftValue - rightValue
+							case "*=":
+								sliceValue[index] = leftValue * rightValue
+							case "/=":
+								if rightValue == 0 {
+									return fmt.Errorf("divide by zero")
+								}
+								sliceValue[index] = leftValue / rightValue
+							}
+						case []int:
+							leftValue, err := utils.ToFloat(sliceValue[index])
+							if err != nil {
+								return err
+							}
+							sliceValue[index] = utils.ToInt(leftValue + rightValue)
+							switch ctx.bop.GetText() {
+							case "+=":
+								sliceValue[index] = utils.ToInt(leftValue + rightValue)
+							case "-=":
+								sliceValue[index] = utils.ToInt(leftValue - rightValue)
+							case "*=":
+								sliceValue[index] = utils.ToInt(leftValue * rightValue)
+							case "/=":
+								if rightValue == 0 {
+									return fmt.Errorf("divide by zero")
+								}
+								sliceValue[index] = utils.ToInt(leftValue / rightValue)
+							}
+						default:
+							return fmt.Errorf("unspport variable type, variable:%v", sliceValue)
+						}
+					} else if vType.Kind() == reflect.Map {
+						index := ""
+						if leftVariable.IndexnName != "" {
+							index = leftVariable.IndexnName
+						} else if leftVariable.IndexnVariableName != "" {
+							index = utils.ToStringWithDefaultValue(v.paramsMap[leftVariable.IndexnVariableName], "")
+						}
+						if index == "" {
+							return fmt.Errorf("invalid index, variable:%v", leftVariable.String())
+						}
+						if mapValue, ok := paramValue.(map[string]any); ok {
+							leftValue, err := utils.ToFloat(mapValue[index])
+							if err != nil {
+								return err
+							}
+							switch ctx.bop.GetText() {
+							case "+=":
+								mapValue[index] = leftValue + rightValue
+							case "-=":
+								mapValue[index] = leftValue - rightValue
+							case "*=":
+								mapValue[index] = leftValue * rightValue
+							case "/=":
+								if rightValue == 0 {
+									return fmt.Errorf("divide by zero")
+								}
+								mapValue[index] = leftValue / rightValue
+							}
+						}
+					}
+				}
+			}
 		default:
 			return fmt.Errorf("op:%s not support", ctx.bop.GetText())
 		}
