@@ -66,7 +66,7 @@ func TestScanVariable(t *testing.T) {
 		scan := NewVariableScanListener()
 		antlr.ParseTreeWalkerDefault.Walk(scan, prog)
 
-		ctx := prog.Statement(0).GetStatementExpression().Expression(0)
+		ctx := prog.BlockStatements().Statement(0).GetStatementExpression().Expression(0)
 
 		expectVariable := scan.node2Variables[ctx]
 		if expectVariable == nil {

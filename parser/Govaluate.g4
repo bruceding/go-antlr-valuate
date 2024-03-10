@@ -1,8 +1,22 @@
 grammar Govaluate;
-prog : statement+;
+prog
+    : blockStatements
+    ;
 
-statement : statementExpression=expression ';'
-           ;
+block
+    : '{' blockStatements '}'
+    ;
+
+blockStatements
+    : statement*
+    ;
+
+
+statement : blockLabel=block
+          | statementExpression=expression ';'
+          | FOR '(' forControl ')' statement
+          | IF parExpression statement (ELSE statement)?
+          ;
 
 expression: primary
             | expression bop='.' ( IDENTIFIER | functionCall)
@@ -22,12 +36,21 @@ expression: primary
             | expression bop='||' expression
             | expression bop='?' expression ':' expression
             | <assoc=right> expression
-             // bop=('=' | '+=' | '-=' | '*=' | '/=' | '&=' | '|=' | '^=' | '>>=' | '>>>=' | '<<=' | '%=')
-              bop=('=' | '+=' | '-=' | '*=' | '/=')
+              bop=('=' | '+=' | '-=' | '*=' | '/=' | '&=' | '|=' | '^=' | '>>=' | '>>>=' | '<<=' | '%=')
               expression
             | expression bop='in' expression
            ;
 
+forControl
+    : forInit? ';' expression? ';' forUpdate=expressionList?
+    ;
+
+forInit: expressionList
+    ;
+
+parExpression
+    : '(' expression ')'
+    ;
 expressionList
     : expression (',' expression)*
     ;
@@ -42,6 +65,9 @@ primary: FLOAT_LITERAL #float
        | IDENTIFIER #identifier
        ;
 
+FOR:    'for';
+IF :    'if';
+ELSE :  'else' ;
 // float 定义
 FLOAT_LITERAL: [0-9]+
              | (Digits '.' Digits? | '.' Digits) ExponentPart? [fFdD]?

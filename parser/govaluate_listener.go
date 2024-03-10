@@ -11,11 +11,26 @@ type GovaluateListener interface {
 	// EnterProg is called when entering the prog production.
 	EnterProg(c *ProgContext)
 
+	// EnterBlock is called when entering the block production.
+	EnterBlock(c *BlockContext)
+
+	// EnterBlockStatements is called when entering the blockStatements production.
+	EnterBlockStatements(c *BlockStatementsContext)
+
 	// EnterStatement is called when entering the statement production.
 	EnterStatement(c *StatementContext)
 
 	// EnterExpression is called when entering the expression production.
 	EnterExpression(c *ExpressionContext)
+
+	// EnterForControl is called when entering the forControl production.
+	EnterForControl(c *ForControlContext)
+
+	// EnterForInit is called when entering the forInit production.
+	EnterForInit(c *ForInitContext)
+
+	// EnterParExpression is called when entering the parExpression production.
+	EnterParExpression(c *ParExpressionContext)
 
 	// EnterExpressionList is called when entering the expressionList production.
 	EnterExpressionList(c *ExpressionListContext)
@@ -47,11 +62,26 @@ type GovaluateListener interface {
 	// ExitProg is called when exiting the prog production.
 	ExitProg(c *ProgContext)
 
+	// ExitBlock is called when exiting the block production.
+	ExitBlock(c *BlockContext)
+
+	// ExitBlockStatements is called when exiting the blockStatements production.
+	ExitBlockStatements(c *BlockStatementsContext)
+
 	// ExitStatement is called when exiting the statement production.
 	ExitStatement(c *StatementContext)
 
 	// ExitExpression is called when exiting the expression production.
 	ExitExpression(c *ExpressionContext)
+
+	// ExitForControl is called when exiting the forControl production.
+	ExitForControl(c *ForControlContext)
+
+	// ExitForInit is called when exiting the forInit production.
+	ExitForInit(c *ForInitContext)
+
+	// ExitParExpression is called when exiting the parExpression production.
+	ExitParExpression(c *ParExpressionContext)
 
 	// ExitExpressionList is called when exiting the expressionList production.
 	ExitExpressionList(c *ExpressionListContext)

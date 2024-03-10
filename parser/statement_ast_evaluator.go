@@ -72,6 +72,11 @@ func NewStatementASTEvaluatorWithParams(p map[string]any, functions map[string]E
 func (v *StatementASTEvaluator) Visit(tree antlr.ParseTree) interface{} { return tree.Accept(v) }
 
 func (v *StatementASTEvaluator) VisitProg(ctx *ProgContext) interface{} {
+	v.Visit(ctx.BlockStatements())
+
+	return nil
+}
+func (v *StatementASTEvaluator) VisitBlockStatements(ctx *BlockStatementsContext) interface{} {
 	for _, statment := range ctx.AllStatement() {
 		v.Visit(statment)
 	}

@@ -11,11 +11,26 @@ type GovaluateVisitor interface {
 	// Visit a parse tree produced by GovaluateParser#prog.
 	VisitProg(ctx *ProgContext) interface{}
 
+	// Visit a parse tree produced by GovaluateParser#block.
+	VisitBlock(ctx *BlockContext) interface{}
+
+	// Visit a parse tree produced by GovaluateParser#blockStatements.
+	VisitBlockStatements(ctx *BlockStatementsContext) interface{}
+
 	// Visit a parse tree produced by GovaluateParser#statement.
 	VisitStatement(ctx *StatementContext) interface{}
 
 	// Visit a parse tree produced by GovaluateParser#expression.
 	VisitExpression(ctx *ExpressionContext) interface{}
+
+	// Visit a parse tree produced by GovaluateParser#forControl.
+	VisitForControl(ctx *ForControlContext) interface{}
+
+	// Visit a parse tree produced by GovaluateParser#forInit.
+	VisitForInit(ctx *ForInitContext) interface{}
+
+	// Visit a parse tree produced by GovaluateParser#parExpression.
+	VisitParExpression(ctx *ParExpressionContext) interface{}
 
 	// Visit a parse tree produced by GovaluateParser#expressionList.
 	VisitExpressionList(ctx *ExpressionListContext) interface{}

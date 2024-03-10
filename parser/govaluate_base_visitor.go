@@ -12,11 +12,31 @@ func (v *BaseGovaluateVisitor) VisitProg(ctx *ProgContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
+func (v *BaseGovaluateVisitor) VisitBlock(ctx *BlockContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseGovaluateVisitor) VisitBlockStatements(ctx *BlockStatementsContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
 func (v *BaseGovaluateVisitor) VisitStatement(ctx *StatementContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
 func (v *BaseGovaluateVisitor) VisitExpression(ctx *ExpressionContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseGovaluateVisitor) VisitForControl(ctx *ForControlContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseGovaluateVisitor) VisitForInit(ctx *ForInitContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseGovaluateVisitor) VisitParExpression(ctx *ParExpressionContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
