@@ -23,6 +23,7 @@ expression: primary
             | expression bop='[' expression ']'
             | '(' expression ')'
             | functionCall
+            | expression postfix=('++' | '--')
             | prefix=('+'|'-'|'++'|'--') expression
             | prefix=('~'|'!') expression
             | expression bop=('*'|'/'|'%'|'**'|'^') expression
@@ -113,7 +114,7 @@ IDENTIFIER:         Letter LetterOrDigit*
 
 fragment LetterOrDigit
     : Letter
-    | [0-9-_]
+    | [0-9_]
     ;
 
 fragment Letter

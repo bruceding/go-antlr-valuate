@@ -63,6 +63,31 @@ func TestStatement(t *testing.T) {
 			expectValue: float64(2),
 			name:        "a",
 		},
+		{
+			input:       "sum = 0;\n  a = ++sum;",
+			expectValue: float64(1),
+			name:        "a",
+		},
+		{
+			input:       "sum = 0;\n  a = ++sum;",
+			expectValue: float64(1),
+			name:        "sum",
+		},
+		{
+			input:       "sum = 4;\n  a = --sum;",
+			expectValue: float64(3),
+			name:        "sum",
+		},
+		{
+			input:       "sum = 4;\n  a = sum--;",
+			expectValue: float64(4),
+			name:        "a",
+		},
+		{
+			input:       "sum = 4;\n  a = sum--;",
+			expectValue: float64(3),
+			name:        "sum",
+		},
 	}
 	for _, tcase := range testCases {
 		lexer := NewGovaluateLexer(antlr.NewInputStream(tcase.input))

@@ -104,11 +104,204 @@ func (v *StatementASTEvaluator) VisitExpression(ctx *ExpressionContext) interfac
 				return !v.Visit(ctx.Expression(0)).(bool)
 			case "~":
 				return float64(^int(v.Visit(ctx.Expression(0)).(float64)))
-			case "++":
-				return float64(1 + int(v.Visit(ctx.Expression(0)).(float64)))
-			case "--":
-				return float64(int(v.Visit(ctx.Expression(0)).(float64)) - 1)
+			case "++", "--":
+				leftVariable := v.node2Variables[ctx.Expression(0)]
+				if leftVariable == nil || leftVariable.Name == "" {
+					return fmt.Errorf("left variable not found")
+				}
+				paramValue, exist := v.paramsMap[leftVariable.Name]
+				if !exist {
+					return fmt.Errorf("variable %v not found", leftVariable.Name)
+				} else {
+					if leftVariable.VariableType == UNKNOWN {
+						leftValue, err := utils.ToFloat(v.paramsMap[leftVariable.Name])
+						if err != nil {
+							return err
+						}
+						if ctx.prefix.GetText() == "++" {
+							v.paramsMap[leftVariable.Name] = leftValue + 1
+							return leftValue + 1
+						} else if ctx.prefix.GetText() == "--" {
+							v.paramsMap[leftVariable.Name] = leftValue - 1
+							return leftValue - 1
+						}
+					} else if leftVariable.VariableType == ARRAYORMAP {
+						vType := reflect.TypeOf(paramValue)
+						if vType.Kind() == reflect.Slice {
+							index := -1
+							if leftVariable.Index >= 0 {
+								index = leftVariable.Index
+							} else if leftVariable.IndexnVariableName != "" {
+								index = utils.ToIntWithDefaultValue(v.paramsMap[leftVariable.IndexnVariableName], -1)
+							}
+							if index == -1 {
+								return fmt.Errorf("invalid index, variable:%v", leftVariable.String())
+							}
+							switch sliceValue := paramValue.(type) {
+							case []any:
+								leftValue, err := utils.ToFloat(sliceValue[index])
+								if err != nil {
+									return err
+								}
+								if ctx.prefix.GetText() == "++" {
+									sliceValue[index] = leftValue + 1
+								} else if ctx.prefix.GetText() == "--" {
+									sliceValue[index] = leftValue - 1
+								}
+								return sliceValue[index]
+							case []float64:
+								leftValue, err := utils.ToFloat(sliceValue[index])
+								if err != nil {
+									return err
+								}
+								if ctx.prefix.GetText() == "++" {
+									sliceValue[index] = leftValue + 1
+								} else if ctx.prefix.GetText() == "--" {
+									sliceValue[index] = leftValue - 1
+								}
+								return sliceValue[index]
+							case []int:
+								leftValue, err := utils.ToFloat(sliceValue[index])
+								if err != nil {
+									return err
+								}
+								if ctx.prefix.GetText() == "++" {
+									sliceValue[index] = utils.ToInt(leftValue + 1)
+								} else if ctx.prefix.GetText() == "--" {
+									sliceValue[index] = utils.ToInt(leftValue - 1)
+								}
+								return sliceValue[index]
+							default:
+								return fmt.Errorf("unspport variable type, variable:%v", sliceValue)
+							}
+						} else if vType.Kind() == reflect.Map {
+							index := ""
+							if leftVariable.IndexnName != "" {
+								index = leftVariable.IndexnName
+							} else if leftVariable.IndexnVariableName != "" {
+								index = utils.ToStringWithDefaultValue(v.paramsMap[leftVariable.IndexnVariableName], "")
+							}
+							if index == "" {
+								return fmt.Errorf("invalid index, variable:%v", leftVariable.String())
+							}
+							if mapValue, ok := paramValue.(map[string]any); ok {
+								leftValue, err := utils.ToFloat(mapValue[index])
+								if err != nil {
+									return err
+								}
+								if ctx.prefix.GetText() == "++" {
+									mapValue[index] = leftValue + 1
+								} else if ctx.prefix.GetText() == "--" {
+									mapValue[index] = leftValue - 1
+								}
+								return mapValue[index]
+							}
+						}
+					}
+				}
+
+				return fmt.Errorf("prefix op:%s not support variable:%s", ctx.prefix.GetText(), leftVariable.String())
 			}
+		} else if ctx.postfix != nil {
+			switch ctx.postfix.GetText() {
+			case "++", "--":
+				leftVariable := v.node2Variables[ctx.Expression(0)]
+				if leftVariable == nil || leftVariable.Name == "" {
+					return fmt.Errorf("left variable not found")
+				}
+				paramValue, exist := v.paramsMap[leftVariable.Name]
+				if !exist {
+					return fmt.Errorf("variable %v not found", leftVariable.Name)
+				} else {
+					if leftVariable.VariableType == UNKNOWN {
+						leftValue, err := utils.ToFloat(v.paramsMap[leftVariable.Name])
+						if err != nil {
+							return err
+						}
+						if ctx.postfix.GetText() == "++" {
+							v.paramsMap[leftVariable.Name] = leftValue + 1
+						} else if ctx.postfix.GetText() == "--" {
+							v.paramsMap[leftVariable.Name] = leftValue - 1
+						}
+						return leftValue
+					} else if leftVariable.VariableType == ARRAYORMAP {
+						vType := reflect.TypeOf(paramValue)
+						if vType.Kind() == reflect.Slice {
+							index := -1
+							if leftVariable.Index >= 0 {
+								index = leftVariable.Index
+							} else if leftVariable.IndexnVariableName != "" {
+								index = utils.ToIntWithDefaultValue(v.paramsMap[leftVariable.IndexnVariableName], -1)
+							}
+							if index == -1 {
+								return fmt.Errorf("invalid index, variable:%v", leftVariable.String())
+							}
+							switch sliceValue := paramValue.(type) {
+							case []any:
+								leftValue, err := utils.ToFloat(sliceValue[index])
+								if err != nil {
+									return err
+								}
+								if ctx.postfix.GetText() == "++" {
+									sliceValue[index] = leftValue + 1
+								} else if ctx.postfix.GetText() == "--" {
+									sliceValue[index] = leftValue - 1
+								}
+								return leftValue
+							case []float64:
+								leftValue, err := utils.ToFloat(sliceValue[index])
+								if err != nil {
+									return err
+								}
+								if ctx.postfix.GetText() == "++" {
+									sliceValue[index] = leftValue + 1
+								} else if ctx.postfix.GetText() == "--" {
+									sliceValue[index] = leftValue - 1
+								}
+								return leftValue
+							case []int:
+								leftValue, err := utils.ToFloat(sliceValue[index])
+								if err != nil {
+									return err
+								}
+								if ctx.postfix.GetText() == "++" {
+									sliceValue[index] = utils.ToInt(leftValue + 1)
+								} else if ctx.postfix.GetText() == "--" {
+									sliceValue[index] = utils.ToInt(leftValue - 1)
+								}
+								return leftValue
+							default:
+								return fmt.Errorf("unspport variable type, variable:%v", sliceValue)
+							}
+						} else if vType.Kind() == reflect.Map {
+							index := ""
+							if leftVariable.IndexnName != "" {
+								index = leftVariable.IndexnName
+							} else if leftVariable.IndexnVariableName != "" {
+								index = utils.ToStringWithDefaultValue(v.paramsMap[leftVariable.IndexnVariableName], "")
+							}
+							if index == "" {
+								return fmt.Errorf("invalid index, variable:%v", leftVariable.String())
+							}
+							if mapValue, ok := paramValue.(map[string]any); ok {
+								leftValue, err := utils.ToFloat(mapValue[index])
+								if err != nil {
+									return err
+								}
+								if ctx.postfix.GetText() == "++" {
+									mapValue[index] = leftValue + 1
+								} else if ctx.postfix.GetText() == "--" {
+									mapValue[index] = leftValue - 1
+								}
+								return leftValue
+							}
+						}
+					}
+				}
+
+				return fmt.Errorf("postfix op:%s not support variable:%s", ctx.prefix.GetText(), leftVariable.String())
+			}
+
 		} else if ctx.bop != nil {
 			left := v.Visit(ctx.Expression(0))
 			if ctx.bop.GetText() == "." {
