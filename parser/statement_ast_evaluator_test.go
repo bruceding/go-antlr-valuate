@@ -88,6 +88,14 @@ func TestStatement(t *testing.T) {
 			expectValue: float64(3),
 			name:        "sum",
 		},
+		{
+			input: `sum = 0;
+			for (i = 0; i < 3; i++) {
+				sum += values[i];
+			}`,
+			expectValue: float64(6),
+			name:        "sum",
+		},
 	}
 	for _, tcase := range testCases {
 		lexer := NewGovaluateLexer(antlr.NewInputStream(tcase.input))

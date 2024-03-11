@@ -86,6 +86,16 @@ func (v *StatementASTEvaluator) VisitBlockStatements(ctx *BlockStatementsContext
 func (v *StatementASTEvaluator) VisitStatement(ctx *StatementContext) interface{} {
 	if ctx.statementExpression != nil {
 		v.Visit(ctx.statementExpression)
+	} else if ctx.FOR() != nil {
+		if ctx.ForControl() != nil {
+			if ctx.ForControl().ForInit() != nil {
+				for _, expression := range ctx.ForControl().ForInit().ExpressionList().AllExpression() {
+					v.Visit(expression)
+				}
+			}
+
+		}
+		fmt.Println("for statement")
 	}
 	return nil
 }
