@@ -76,6 +76,10 @@ func (v *StatementASTEvaluator) VisitProg(ctx *ProgContext) interface{} {
 
 	return nil
 }
+func (v *StatementASTEvaluator) VisitBlock(ctx *BlockContext) interface{} {
+	v.Visit(ctx.BlockStatements())
+	return nil
+}
 func (v *StatementASTEvaluator) VisitBlockStatements(ctx *BlockStatementsContext) interface{} {
 	for _, statment := range ctx.AllStatement() {
 		v.Visit(statment)
@@ -94,8 +98,36 @@ func (v *StatementASTEvaluator) VisitStatement(ctx *StatementContext) interface{
 				}
 			}
 
+			for {
+				if ctx.ForControl().Expression() != nil {
+					flag := v.Visit(ctx.ForControl().Expression())
+					if err, ok := flag.(error); ok {
+						return err
+					} else {
+						if boolVal, ok := flag.(bool); ok {
+							if !boolVal {
+								break
+							}
+						} else {
+							return fmt.Errorf("invalid for statement expression, result:%v, not true or false, error expression:%s, at %d,%d", flag,
+								ctx.ForControl().Expression().GetText(), ctx.ForControl().Expression().GetStart().GetLine(), ctx.ForControl().Expression().GetStart().GetColumn())
+						}
+					}
+				}
+				if ctx.Statement(0) != nil {
+					v.Visit(ctx.Statement(0))
+				}
+
+				if ctx.ForControl().GetForUpdate() != nil {
+					for _, expression := range ctx.ForControl().GetForUpdate().AllExpression() {
+						v.Visit(expression)
+					}
+				}
+			}
+
 		}
-		fmt.Println("for statement")
+	} else if ctx.blockLabel != nil {
+		v.Visit(ctx.Block())
 	}
 	return nil
 }
