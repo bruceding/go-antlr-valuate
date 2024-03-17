@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
@@ -98,6 +99,8 @@ func (v *StatementASTEvaluator) VisitStatement(ctx *StatementContext) interface{
 				}
 			}
 
+			i := 0
+			start := time.Now()
 			for {
 				if ctx.ForControl().Expression() != nil {
 					flag := v.Visit(ctx.ForControl().Expression())
@@ -118,6 +121,14 @@ func (v *StatementASTEvaluator) VisitStatement(ctx *StatementContext) interface{
 					v.Visit(ctx.Statement(0))
 				}
 
+				i++
+				// for loop is long
+				if i >= 10000 {
+					// 5 seconds
+					if time.Now().Unix()-start.Unix() > 5 {
+						return errors.New("for loop excute too long , maybe contains an infinite loop")
+					}
+				}
 				if ctx.ForControl().GetForUpdate() != nil {
 					for _, expression := range ctx.ForControl().GetForUpdate().AllExpression() {
 						v.Visit(expression)
@@ -128,6 +139,26 @@ func (v *StatementASTEvaluator) VisitStatement(ctx *StatementContext) interface{
 		}
 	} else if ctx.blockLabel != nil {
 		v.Visit(ctx.Block())
+	} else if ctx.IF() != nil {
+		flag := v.Visit(ctx.ParExpression().Expression())
+		if err, ok := flag.(error); ok {
+			return err
+		} else {
+			if bFlag, ok := flag.(bool); ok {
+				if bFlag {
+					v.Visit(ctx.Statement(0))
+				} else {
+					// if condition is false
+					if ctx.Statement(1) != nil {
+						v.Visit(ctx.Statement(1))
+					}
+				}
+			} else {
+				return fmt.Errorf("invalid for ParExpression, result:%v, not true or false, error expression:%s, at %d,%d", flag,
+					ctx.ParExpression().Expression().GetText(), ctx.ParExpression().Expression().GetStart().GetLine(), ctx.ParExpression().Expression().GetStart().GetColumn())
+
+			}
+		}
 	}
 	return nil
 }

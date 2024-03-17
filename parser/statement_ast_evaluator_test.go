@@ -90,11 +90,51 @@ func TestStatement(t *testing.T) {
 		},
 		{
 			input: `sum = 0;
-			for (i = 0; i < 3; i++) {
+			for (i = 0;  i < 3; i++) {
 				sum += values[i];
 			}`,
 			expectValue: float64(6),
 			name:        "sum",
+		},
+		{
+			input: `a = 0 ;
+			if (b > 2) {
+				a = 1;
+			} else {
+				a = 2;
+			}`,
+			expectValue: float64(1),
+			name:        "a",
+		},
+		{
+			input: `a = 0 ;
+			if (b > 8) {
+				a = 1;
+			} else {
+				a = 2;
+			}`,
+			expectValue: float64(2),
+			name:        "a",
+		},
+		{
+			input: `a = 0 ;
+			if (b > 8) {
+				a = 1;
+			}`,
+			expectValue: float64(0),
+			name:        "a",
+		},
+		{
+			input: `a = 0 ;
+			if (b > 8) {
+				a = 1;
+			} else if (b == 4){
+					a = 3;
+			} else {
+				a = 2;
+			}`,
+			expectValue: float64(3),
+			name:        "a",
 		},
 	}
 	for _, tcase := range testCases {
