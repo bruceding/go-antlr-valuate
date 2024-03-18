@@ -112,7 +112,7 @@ func TestEvaluableExpressionResult(t *testing.T) {
 				t.Fatal("expect type is bool")
 			}
 			if val != tcase.expectValue {
-				t.Fatal("expect value is not equal")
+				t.Fatalf("expect value is not equal,input:%s, expect:%v, actual:%v", tcase.input, tcase.expectValue, val)
 			}
 		case time.Time:
 			if tcase.expectType != "Time" {

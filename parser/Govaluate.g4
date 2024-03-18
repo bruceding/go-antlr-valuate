@@ -1,10 +1,29 @@
 grammar Govaluate;
+prog
+    : blockStatements
+    ;
+
+block
+    : '{' blockStatements '}'
+    ;
+
+blockStatements
+    : statement*
+    ;
+
+
+statement : blockLabel=block
+          | statementExpression=expression ';'
+          | FOR '(' forControl ')' statement
+          | IF parExpression statement (ELSE statement)?
+          ;
 
 expression: primary
             | expression bop='.' ( IDENTIFIER | functionCall)
             | expression bop='[' expression ']'
             | '(' expression ')'
             | functionCall
+            | expression postfix=('++' | '--')
             | prefix=('+'|'-'|'++'|'--') expression
             | prefix=('~'|'!') expression
             | expression bop=('*'|'/'|'%'|'**'|'^') expression
@@ -17,12 +36,22 @@ expression: primary
             | expression bop='&&' expression
             | expression bop='||' expression
             | expression bop='?' expression ':' expression
-            //| <assoc=right> expression
-             // bop=('=' | '+=' | '-=' | '*=' | '/=' | '&=' | '|=' | '^=' | '>>=' | '>>>=' | '<<=' | '%=')
-              //expression
-            | expression bop='in' expression 
+            | <assoc=right> expression
+              bop=('=' | '+=' | '-=' | '*=' | '/=' | '&=' | '|=' | '^=' | '>>=' | '>>>=' | '<<=' | '%=')
+              expression
+            | expression bop='in' expression
            ;
 
+forControl
+    : forInit? ';' expression? ';' forUpdate=expressionList?
+    ;
+
+forInit: expressionList
+    ;
+
+parExpression
+    : '(' expression ')'
+    ;
 expressionList
     : expression (',' expression)*
     ;
@@ -37,6 +66,9 @@ primary: FLOAT_LITERAL #float
        | IDENTIFIER #identifier
        ;
 
+FOR:    'for';
+IF :    'if';
+ELSE :  'else' ;
 // float 定义
 FLOAT_LITERAL: [0-9]+
              | (Digits '.' Digits? | '.' Digits) ExponentPart? [fFdD]?
@@ -76,13 +108,12 @@ array_value : STRING_LITERAL
 
 // Identifiers
 IDENTIFIER:         Letter LetterOrDigit*
-          //| '[' Letter LetterOrDigit* ']'
-          | '${' Letter LetterOrDigit* '}'
+          | '${' Letter (LetterOrDigit|[-])+ '}'
           ;
 
 fragment LetterOrDigit
     : Letter
-    | [0-9-_]
+    | [0-9_]
     ;
 
 fragment Letter

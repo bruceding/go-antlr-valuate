@@ -62,8 +62,10 @@ result, err := expr.Evaluate(parameters);
 
 ```
 
-## 变量中的特殊字符
-
+## 变量约束
+* 第一个字符必须是字母
+* 后面的字符可以是字母、数字，下划线(_)、 连字符(-)
+* 可以用 `${}` 包裹变量名称     
 比如下面的表达式， 目前是解析成两个参数， response 和 time, response 减去 time 之后， 再和 100 进行比较。
 ```
 "response-time < 100"
