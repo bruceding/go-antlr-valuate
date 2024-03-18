@@ -19,6 +19,9 @@ func NewVariableScanListener() *VariableScanListener {
 		node2Variables: make(map[antlr.ParserRuleContext]*Variable),
 	}
 }
+func (s *VariableScanListener) GetNode2Variables() map[antlr.ParserRuleContext]*Variable {
+	return s.node2Variables
+}
 
 func (s *VariableScanListener) EnterExpression(ctx *ExpressionContext) {
 	if ctx.Primary() != nil {
