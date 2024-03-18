@@ -326,6 +326,12 @@ func TestOperatorParseWithParams(t *testing.T) {
 			params:      map[string]any{"http_response_body": "service is ok"},
 		},
 		{
+			input:       "${http-response_body} == 'service is ok'",
+			expectType:  "bool",
+			expectValue: true,
+			params:      map[string]any{"http-response_body": "service is ok"},
+		},
+		{
 			input:       "arr[1]",
 			expectType:  "float64",
 			expectValue: float64(2),
