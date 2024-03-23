@@ -3,6 +3,8 @@ package parser
 import (
 	"fmt"
 	"math"
+
+	"github.com/bruceding/go-antlr-valuate/utils"
 )
 
 type ExpressionFunction func(arguments ...interface{}) (interface{}, error)
@@ -40,6 +42,9 @@ var (
 		},
 		"sqrt": func(arguments ...interface{}) (interface{}, error) {
 			return math.Sqrt(arguments[0].(float64)), nil
+		},
+		"tostring": func(arguments ...interface{}) (interface{}, error) {
+			return utils.ToString(arguments[0]), nil
 		},
 	}
 )

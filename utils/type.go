@@ -101,6 +101,26 @@ func ToIntWithDefaultValue(i interface{}, defaultVal int) int {
 	}
 }
 
+func ToString(i interface{}) string {
+	switch value := i.(type) {
+	case int:
+		return strconv.Itoa(value)
+	case float64:
+		return strconv.FormatFloat(value, 'f', -1, 64)
+	case float32:
+		return strconv.FormatFloat(float64(value), 'f', -1, 64)
+	case int32:
+		return strconv.Itoa(int(value))
+	case int64:
+		return strconv.FormatInt(value, 10)
+	case string:
+		return value
+	case json.Number:
+		return value.String()
+	default:
+		return fmt.Sprintf("%v", i)
+	}
+}
 func ToStringWithDefaultValue(i interface{}, defaultVal string) string {
 	switch value := i.(type) {
 	case int:
