@@ -39,5 +39,5 @@ func (e *EvaluableStatement) Evaluate(params map[string]interface{}) (map[string
 	ast := parser.NewStatementASTEvaluatorWithParams(params, e.customFunctions, e.variableScanListener.GetNode2Variables())
 	ast.Visit(e.progContext)
 
-	return params, nil
+	return ast.ParamsMap(), nil
 }

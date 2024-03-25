@@ -1147,3 +1147,7 @@ func (v *StatementASTEvaluator) VisitExpressionList(ctx *ExpressionListContext) 
 
 	return params
 }
+
+func (v *StatementASTEvaluator) ParamsMap() map[string]any {
+	return v.paramsMap
+}
