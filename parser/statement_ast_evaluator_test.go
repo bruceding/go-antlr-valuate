@@ -218,14 +218,12 @@ func TestStatement2(t *testing.T) {
 		name        string
 	}{
 		{
-			input: `
-			sum = 0;
-			foreach (values as k => v) {
-				sum += v; 
-			}
-			`,
-			expectValue: float64(6),
-			name:        "sum",
+			input: `out_values = (0,0,0);
+			for (i = 0;  i < len(values); i++) {
+				out_values[i] = values[i];
+			}`,
+			expectValue: []any{float64(1), float64(2), float64(3)},
+			name:        "out_values",
 		},
 	}
 	for _, tcase := range testCases {

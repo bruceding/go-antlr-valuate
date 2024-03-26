@@ -20,6 +20,7 @@ type StatementASTEvaluator struct {
 	paramsMap          map[string]any
 	preDefineFunctions map[string]ExpressionFunction
 	node2Variables     map[antlr.ParserRuleContext]*Variable
+	errors             []error
 }
 
 func NewStatementASTEvaluator(node2Variables map[antlr.ParserRuleContext]*Variable) *StatementASTEvaluator {
@@ -83,14 +84,20 @@ func (v *StatementASTEvaluator) VisitBlock(ctx *BlockContext) interface{} {
 }
 func (v *StatementASTEvaluator) VisitBlockStatements(ctx *BlockStatementsContext) interface{} {
 	for _, statment := range ctx.AllStatement() {
-		v.Visit(statment)
+		result := v.Visit(statment)
+		if err, ok := result.(error); ok {
+			v.errors = append(v.errors, err)
+		}
 	}
 
 	return nil
 }
 func (v *StatementASTEvaluator) VisitStatement(ctx *StatementContext) interface{} {
 	if ctx.statementExpression != nil {
-		v.Visit(ctx.statementExpression)
+		result := v.Visit(ctx.statementExpression)
+		if err, ok := result.(error); ok {
+			v.errors = append(v.errors, err)
+		}
 	} else if ctx.FOR() != nil {
 		if ctx.ForControl() != nil {
 			if ctx.ForControl().ForInit() != nil {
@@ -173,6 +180,10 @@ func (v *StatementASTEvaluator) VisitStatement(ctx *StatementContext) interface{
 		eachParamType := reflect.TypeOf(eachParam)
 		keyVariable := v.node2Variables[ctx.ForeachControl().GetKeyExpression()]
 		valueVariable := v.node2Variables[ctx.ForeachControl().GetValueExpression()]
+		if keyVariable == nil || valueVariable == nil {
+			return fmt.Errorf("key or value variable not found, expression:%s, at %d,%d", ctx.ForeachControl().GetKeyExpression().GetText(),
+				ctx.ForeachControl().GetKeyExpression().GetStart().GetLine(), ctx.ForeachControl().GetKeyExpression().GetStart().GetColumn())
+		}
 		if eachParamType.Kind() == reflect.Slice {
 			switch eachParamValue := eachParam.(type) {
 			case []any:
@@ -1150,4 +1161,8 @@ func (v *StatementASTEvaluator) VisitExpressionList(ctx *ExpressionListContext) 
 
 func (v *StatementASTEvaluator) ParamsMap() map[string]any {
 	return v.paramsMap
+}
+
+func (v *StatementASTEvaluator) Errors() []error {
+	return v.errors
 }
