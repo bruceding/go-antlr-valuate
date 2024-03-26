@@ -152,6 +152,128 @@ foo['bar'] > 2
 * 访问数组坐标 []
 * 访问字段或者方法 `.`
 
+## 语句支持
+除了上面表达式支持之外，还支持更复杂语句的支持，比如 赋值语句、循环遍历(for, foreach), if 语句等。
+
+### 赋值语句
+
+```go
+input := "a = 1;"
+statement, err := NewEvaluableStatement(input)
+resultMap, errs := statement.Evaluate(nil)
+
+fmt.Println(resultMap["a"]) // will print 1, float64 type
+```
+
+也可以数组的初始化
+```go
+input := "a = (1,2,3);"
+statement, err := NewEvaluableStatement(input)
+resultMap, errs := statement.Evaluate(nil)
+
+fmt.Println(resultMap["a"]) // will print [1 2 3], type []any
+```
+
+也可以直接通过变量进行赋值
+```go
+
+input := "a = b;"
+statement, err := NewEvaluableStatement(input)
+parameters := make(map[string]interface{}, 8)
+parameters["b"] = 1;
+
+resultMap, errs := statement.Evaluate(parameters)
+
+fmt.Println(resultMap["a"]) // will print 1, float64 type
+
+```
+
+### IF语句
+```go
+input := `a = 0 ;
+if (b > 8) {
+	a = 1;
+} else if (b == 4){
+		a = 3;
+} else {
+	a = 2;
+}`
+
+statement, err := NewEvaluableStatement(input)
+parameters := make(map[string]interface{}, 8)
+parameters["b"] = 4;
+
+resultMap, errs := statement.Evaluate(parameters)
+
+fmt.Println(resultMap["a"]) // will print 3, float64 type
+
+```
+
+### FOR语句
+
+```go
+input := `out_values = (0,0,0);
+for (i = 0;  i < len(values); i++) {
+	out_values[i] = values[i];
+}`
+
+// len 是内置的function , 可以返回数组的长度
+
+statement, err := NewEvaluableStatement(input)
+parameters := make(map[string]interface{}, 8)
+parameters["b"] = 4;
+parameters["values"] = []int{1, 2, 3};
+
+resultMap, errs := statement.Evaluate(parameters)
+
+fmt.Println(resultMap["out_values"]) // will print [1, 2, 3], type: []any, every element is float64
+
+```
+### FOREACH语句
+
+foreach 语句可以遍历数组或者 map 类型 
+```go
+input := `
+foreach (input_values_map as k => v) {
+	out_values_map[k] = v;
+}
+`
+statement, err := NewEvaluableStatement(input)
+parameters := make(map[string]interface{}, 8)
+parameters["b"] = 4;
+parameters["input_values_map"] = map[string]any{"1": 1, "2": 2, "3": 3}
+parameters["out_values_map"] = map[string]any{}
+
+// out_values_map must in the parameters
+resultMap, errs := statement.Evaluate(parameters)
+
+fmt.Println(resultMap["out_values_map"]) // will print map[1:1 2:2 3:3],  
+
+```
+
+也可以遍历数组
+```go
+input := `
+sum = 0;
+foreach (values as k => v) {
+	sum += v; 
+}
+`
+
+statement, err := NewEvaluableStatement(input)
+parameters := make(map[string]interface{}, 8)
+parameters["b"] = 4;
+parameters["values"] = []int{1, 2, 3};
+
+resultMap, errs := statement.Evaluate(parameters)
+
+fmt.Println(resultMap["sum"]) // will print 6, type is float64
+
+```
+更多的测试用户可以参考 [TestEvaluableStatement](./evaluable_statement_test.go)
+
+
+
 ## 语法的使用
 antlr4 的语法文件参考 [Govaluate.g4](parser/Govaluate.g4)
 

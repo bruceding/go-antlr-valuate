@@ -20,6 +20,7 @@ type StatementASTEvaluator struct {
 	paramsMap          map[string]any
 	preDefineFunctions map[string]ExpressionFunction
 	node2Variables     map[antlr.ParserRuleContext]*Variable
+	errors             []error
 }
 
 func NewStatementASTEvaluator(node2Variables map[antlr.ParserRuleContext]*Variable) *StatementASTEvaluator {
@@ -83,14 +84,20 @@ func (v *StatementASTEvaluator) VisitBlock(ctx *BlockContext) interface{} {
 }
 func (v *StatementASTEvaluator) VisitBlockStatements(ctx *BlockStatementsContext) interface{} {
 	for _, statment := range ctx.AllStatement() {
-		v.Visit(statment)
+		result := v.Visit(statment)
+		if err, ok := result.(error); ok {
+			v.errors = append(v.errors, err)
+		}
 	}
 
 	return nil
 }
 func (v *StatementASTEvaluator) VisitStatement(ctx *StatementContext) interface{} {
 	if ctx.statementExpression != nil {
-		v.Visit(ctx.statementExpression)
+		result := v.Visit(ctx.statementExpression)
+		if err, ok := result.(error); ok {
+			v.errors = append(v.errors, err)
+		}
 	} else if ctx.FOR() != nil {
 		if ctx.ForControl() != nil {
 			if ctx.ForControl().ForInit() != nil {
@@ -112,7 +119,7 @@ func (v *StatementASTEvaluator) VisitStatement(ctx *StatementContext) interface{
 								break
 							}
 						} else {
-							return fmt.Errorf("invalid for statement expression, result:%v, not true or false, error expression:%s, at %d,%d", flag,
+							return fmt.Errorf("invalid for statement expression, result:%v, not true or false, expression:%s, at %d,%d", flag,
 								ctx.ForControl().Expression().GetText(), ctx.ForControl().Expression().GetStart().GetLine(), ctx.ForControl().Expression().GetStart().GetColumn())
 						}
 					}
@@ -159,6 +166,89 @@ func (v *StatementASTEvaluator) VisitStatement(ctx *StatementContext) interface{
 
 			}
 		}
+	} else if ctx.FOREACH() != nil {
+		eachVariable := v.node2Variables[ctx.ForeachControl().GetFromExpression()]
+		if eachVariable == nil || eachVariable.Name == "" {
+			return fmt.Errorf("left variable not found, expression:%s, at %d,%d", ctx.ForeachControl().GetFromExpression().GetText(),
+				ctx.ForeachControl().GetFromExpression().GetStart().GetLine(), ctx.ForeachControl().GetFromExpression().GetStart().GetColumn())
+		}
+		eachParam, ok := v.paramsMap[eachVariable.Name]
+		if !ok {
+			return fmt.Errorf("left variable not found, expression:%s, at %d,%d", ctx.ForeachControl().GetFromExpression().GetText(),
+				ctx.ForeachControl().GetFromExpression().GetStart().GetLine(), ctx.ForeachControl().GetFromExpression().GetStart().GetColumn())
+		}
+		eachParamType := reflect.TypeOf(eachParam)
+		keyVariable := v.node2Variables[ctx.ForeachControl().GetKeyExpression()]
+		valueVariable := v.node2Variables[ctx.ForeachControl().GetValueExpression()]
+		if keyVariable == nil || valueVariable == nil {
+			return fmt.Errorf("key or value variable not found, expression:%s, at %d,%d", ctx.ForeachControl().GetKeyExpression().GetText(),
+				ctx.ForeachControl().GetKeyExpression().GetStart().GetLine(), ctx.ForeachControl().GetKeyExpression().GetStart().GetColumn())
+		}
+		if eachParamType.Kind() == reflect.Slice {
+			switch eachParamValue := eachParam.(type) {
+			case []any:
+				for i, value := range eachParamValue {
+					v.paramsMap[keyVariable.Name] = i
+					v.paramsMap[valueVariable.Name] = value
+					v.Visit(ctx.Statement(0))
+				}
+			case []string:
+				for i, value := range eachParamValue {
+					v.paramsMap[keyVariable.Name] = i
+					v.paramsMap[valueVariable.Name] = value
+					v.Visit(ctx.Statement(0))
+				}
+			case []int:
+				for i, value := range eachParamValue {
+					v.paramsMap[keyVariable.Name] = i
+					v.paramsMap[valueVariable.Name] = value
+					v.Visit(ctx.Statement(0))
+				}
+			case []float64:
+				for i, value := range eachParamValue {
+					v.paramsMap[keyVariable.Name] = i
+					v.paramsMap[valueVariable.Name] = value
+					v.Visit(ctx.Statement(0))
+				}
+			}
+
+		} else if eachParamType.Kind() == reflect.Map {
+			switch eachParamValue := eachParam.(type) {
+			case map[string]any:
+				for key, value := range eachParamValue {
+					v.paramsMap[keyVariable.Name] = key
+					v.paramsMap[valueVariable.Name] = value
+
+					v.Visit(ctx.Statement(0))
+				}
+			case map[string]int:
+				for key, value := range eachParamValue {
+					v.paramsMap[keyVariable.Name] = key
+					v.paramsMap[valueVariable.Name] = value
+
+					v.Visit(ctx.Statement(0))
+				}
+			case map[string]float64:
+				for key, value := range eachParamValue {
+					v.paramsMap[keyVariable.Name] = key
+					v.paramsMap[valueVariable.Name] = value
+
+					v.Visit(ctx.Statement(0))
+				}
+			case map[string]string:
+				for key, value := range eachParamValue {
+					v.paramsMap[keyVariable.Name] = key
+					v.paramsMap[valueVariable.Name] = value
+
+					v.Visit(ctx.Statement(0))
+				}
+			}
+		} else {
+			return fmt.Errorf("foreach not support variable type:%T, expression:%s, at %d,%d", eachParam, ctx.ForeachControl().GetFromExpression().GetText(),
+				ctx.ForeachControl().GetFromExpression().GetStart().GetLine(), ctx.ForeachControl().GetFromExpression().GetStart().GetColumn())
+
+		}
+
 	}
 	return nil
 }
@@ -765,7 +855,8 @@ func (v *StatementASTEvaluator) VisitExpression(ctx *ExpressionContext) interfac
 		case "=":
 			leftVariable := v.node2Variables[ctx.Expression(0)]
 			if leftVariable == nil || leftVariable.Name == "" {
-				return fmt.Errorf("left variable not found")
+				return fmt.Errorf("left variable not found, error:%v, at %d:%d", ctx.Expression(0).GetText(), ctx.Expression(0).GetStart().GetLine(),
+					ctx.Expression(0).GetStart().GetColumn())
 			}
 			if paramValue, exist := v.paramsMap[leftVariable.Name]; !exist {
 				v.paramsMap[leftVariable.Name] = right
@@ -1066,4 +1157,12 @@ func (v *StatementASTEvaluator) VisitExpressionList(ctx *ExpressionListContext) 
 	}
 
 	return params
+}
+
+func (v *StatementASTEvaluator) ParamsMap() map[string]any {
+	return v.paramsMap
+}
+
+func (v *StatementASTEvaluator) Errors() []error {
+	return v.errors
 }

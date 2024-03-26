@@ -1,4 +1,4 @@
-// Code generated from Govaluate.g4 by ANTLR 4.13.1. DO NOT EDIT.
+// Code generated from Govaluate.g4 by ANTLR 4.13.0. DO NOT EDIT.
 
 package parser // Govaluate
 
@@ -33,6 +33,10 @@ func (v *BaseGovaluateVisitor) VisitForControl(ctx *ForControlContext) interface
 }
 
 func (v *BaseGovaluateVisitor) VisitForInit(ctx *ForInitContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+func (v *BaseGovaluateVisitor) VisitForeachControl(ctx *ForeachControlContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 

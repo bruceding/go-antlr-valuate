@@ -1,34 +1,18 @@
-package parser
+package valuate
 
 import (
-	"fmt"
 	"reflect"
+	"strings"
 	"testing"
-
-	"github.com/antlr4-go/antlr/v4"
 )
 
-func TestStatement(t *testing.T) {
+func TestEvaluableStatement(t *testing.T) {
+
 	testCases := []struct {
 		input       string
 		expectValue any
 		name        string
 	}{
-		{
-			input:       "a = 1;",
-			expectValue: float64(1),
-			name:        "a",
-		},
-		{
-			input:       "a = b;",
-			expectValue: float64(4),
-			name:        "a",
-		},
-		{
-			input:       " c =  4;\n a = c;",
-			expectValue: float64(4),
-			name:        "a",
-		},
 		{
 			input:       " values[0] = b;",
 			expectValue: []int{4, 2, 3},
@@ -146,6 +130,14 @@ func TestStatement(t *testing.T) {
 			name:        "out_values",
 		},
 		{
+			input: `out_values = (0,0,0);
+			for (i = 0;  i < len(values); i++) {
+				out_values[i] = values[i];
+			}`,
+			expectValue: []any{float64(1), float64(2), float64(3)},
+			name:        "out_values",
+		},
+		{
 			input: `
 			foreach (input_values_map as k => v) {
 				out_values_map[k] = v;
@@ -166,16 +158,11 @@ func TestStatement(t *testing.T) {
 		},
 	}
 	for _, tcase := range testCases {
-		lexer := NewGovaluateLexer(antlr.NewInputStream(tcase.input))
+		statement, err := NewEvaluableStatement(tcase.input)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-		stream := antlr.NewCommonTokenStream(lexer, antlr.LexerDefaultTokenChannel)
-
-		parser := NewGovaluateParser(stream)
-
-		prog := parser.Prog()
-
-		scan := NewVariableScanListener()
-		antlr.ParseTreeWalkerDefault.Walk(scan, prog)
 		paramMap := map[string]any{
 			"b":                4,
 			"values":           []int{1, 2, 3},
@@ -183,60 +170,66 @@ func TestStatement(t *testing.T) {
 			"out_values_map":   map[string]any{},
 		}
 
-		ast := NewStatementASTEvaluatorWithParams(paramMap, make(map[string]ExpressionFunction), scan.node2Variables)
-		ast.Visit(prog)
+		resultMap, errs := statement.Evaluate(paramMap)
+		if errs != nil {
+			t.Fatal(errs)
+		}
 
 		switch expectVal := tcase.expectValue.(type) {
 		case float64:
-			if expectVal != ast.paramsMap[tcase.name] {
-				t.Fatalf("expect value is not equal, expected %v, got %v", expectVal, ast.paramsMap[tcase.name])
+			if expectVal != resultMap[tcase.name] {
+				t.Fatalf("expect value is not equal, expected %v, got %v", expectVal, resultMap[tcase.name])
 			}
 		case []int:
-			if !reflect.DeepEqual(expectVal, ast.paramsMap[tcase.name]) {
-				t.Fatalf("expect value is not equal, expected %v, %T, got %v, %T", expectVal, expectVal, ast.paramsMap[tcase.name], ast.paramsMap[tcase.name])
+			if !reflect.DeepEqual(expectVal, resultMap[tcase.name]) {
+				t.Fatalf("expect value is not equal, expected %v, %T, got %v, %T", expectVal, expectVal, resultMap[tcase.name], resultMap[tcase.name])
 			}
 		case []any:
-			if !reflect.DeepEqual(expectVal, ast.paramsMap[tcase.name]) {
-				t.Fatalf("expect value is not equal, expected %v, %T, got %v, %T", expectVal, expectVal, ast.paramsMap[tcase.name], ast.paramsMap[tcase.name])
+			if !reflect.DeepEqual(expectVal, resultMap[tcase.name]) {
+				t.Fatalf("expect value is not equal, expected %v, %T, got %v, %T", expectVal, expectVal, resultMap[tcase.name], resultMap[tcase.name])
 			}
 		case map[string]any:
-			if !reflect.DeepEqual(expectVal, ast.paramsMap[tcase.name]) {
-				t.Fatalf("expect value is not equal, expected %v, %T, got %v, %T", expectVal, expectVal, ast.paramsMap[tcase.name], ast.paramsMap[tcase.name])
+			if !reflect.DeepEqual(expectVal, resultMap[tcase.name]) {
+				t.Fatalf("expect value is not equal, expected %v, %T, got %v, %T", expectVal, expectVal, resultMap[tcase.name], resultMap[tcase.name])
 			}
 
 		default:
-			t.Fatalf("expect value is not equal, expected %v, %T, got %v, %T", expectVal, expectVal, ast.paramsMap[tcase.name], ast.paramsMap[tcase.name])
+			t.Fatalf("expect value is not equal, expected %v, %T, got %v, %T", expectVal, expectVal, resultMap[tcase.name], resultMap[tcase.name])
 		}
 	}
-
 }
 
-func TestStatement2(t *testing.T) {
+func TestEvaluableStatementError(t *testing.T) {
+
 	testCases := []struct {
 		input       string
 		expectValue any
 		name        string
+		errMsg      string
 	}{
 		{
+			input: `
+			sum = 0;
+			foreach (values as k ) {
+				sum += v; 
+			}
+			`,
+			errMsg: "key or value variable not found",
+		},
+		{
 			input: `out_values = (0,0,0);
-			for (i = 0;  i < len(values); i++) {
+			for (i = 0;  i ; i++) {
 				out_values[i] = values[i];
 			}`,
-			expectValue: []any{float64(1), float64(2), float64(3)},
-			name:        "out_values",
+			errMsg: "invalid for statement expression",
 		},
 	}
 	for _, tcase := range testCases {
-		lexer := NewGovaluateLexer(antlr.NewInputStream(tcase.input))
+		statement, err := NewEvaluableStatement(tcase.input)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-		stream := antlr.NewCommonTokenStream(lexer, antlr.LexerDefaultTokenChannel)
-
-		parser := NewGovaluateParser(stream)
-
-		prog := parser.Prog()
-
-		scan := NewVariableScanListener()
-		antlr.ParseTreeWalkerDefault.Walk(scan, prog)
 		paramMap := map[string]any{
 			"b":                4,
 			"values":           []int{1, 2, 3},
@@ -244,31 +237,20 @@ func TestStatement2(t *testing.T) {
 			"out_values_map":   map[string]any{},
 		}
 
-		ast := NewStatementASTEvaluatorWithParams(paramMap, make(map[string]ExpressionFunction), scan.node2Variables)
-		ast.Visit(prog)
-
-		fmt.Println(ast.paramsMap)
-		switch expectVal := tcase.expectValue.(type) {
-		case float64:
-			if expectVal != ast.paramsMap[tcase.name] {
-				t.Fatalf("expect value is not equal, expected %v, got %v", expectVal, ast.paramsMap[tcase.name])
-			}
-		case []int:
-			if !reflect.DeepEqual(expectVal, ast.paramsMap[tcase.name]) {
-				t.Fatalf("expect value is not equal, expected %v, %T, got %v, %T", expectVal, expectVal, ast.paramsMap[tcase.name], ast.paramsMap[tcase.name])
-			}
-		case []any:
-			if !reflect.DeepEqual(expectVal, ast.paramsMap[tcase.name]) {
-				t.Fatalf("expect value is not equal, expected %v, %T, got %v, %T", expectVal, expectVal, ast.paramsMap[tcase.name], ast.paramsMap[tcase.name])
-			}
-		case map[string]any:
-			if !reflect.DeepEqual(expectVal, ast.paramsMap[tcase.name]) {
-				t.Fatalf("expect value is not equal, expected %v, %T, got %v, %T", expectVal, expectVal, ast.paramsMap[tcase.name], ast.paramsMap[tcase.name])
-			}
-
-		default:
-			t.Fatalf("expect value is not equal, expected %v, %T, got %v, %T", expectVal, expectVal, ast.paramsMap[tcase.name], ast.paramsMap[tcase.name])
+		_, errs := statement.Evaluate(paramMap)
+		if len(errs) == 0 {
+			t.Fatal("not found error")
 		}
-	}
+		found := false
+		for _, err := range errs {
+			if strings.Contains(err.Error(), tcase.errMsg) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("not found error:%s", tcase.errMsg)
+		}
 
+	}
 }

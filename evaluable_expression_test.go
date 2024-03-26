@@ -1,7 +1,6 @@
 package valuate
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -83,7 +82,6 @@ func TestEvaluableExpressionResult(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		fmt.Println(result)
 		switch val := result.(type) {
 		case []any:
 			if tcase.expectType != "[]any" {

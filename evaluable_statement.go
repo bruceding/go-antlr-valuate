@@ -35,9 +35,9 @@ func NewEvaluableStatementWithFunctions(expr string, functions map[string]parser
 	}, nil
 }
 
-func (e *EvaluableStatement) Evaluate(params map[string]interface{}) (map[string]any, error) {
+func (e *EvaluableStatement) Evaluate(params map[string]interface{}) (map[string]any, []error) {
 	ast := parser.NewStatementASTEvaluatorWithParams(params, e.customFunctions, e.variableScanListener.GetNode2Variables())
 	ast.Visit(e.progContext)
 
-	return params, nil
+	return ast.ParamsMap(), ast.Errors()
 }

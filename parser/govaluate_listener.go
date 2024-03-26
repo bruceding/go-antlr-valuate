@@ -1,4 +1,4 @@
-// Code generated from Govaluate.g4 by ANTLR 4.13.1. DO NOT EDIT.
+// Code generated from Govaluate.g4 by ANTLR 4.13.0. DO NOT EDIT.
 
 package parser // Govaluate
 
@@ -28,6 +28,9 @@ type GovaluateListener interface {
 
 	// EnterForInit is called when entering the forInit production.
 	EnterForInit(c *ForInitContext)
+
+	// EnterForeachControl is called when entering the foreachControl production.
+	EnterForeachControl(c *ForeachControlContext)
 
 	// EnterParExpression is called when entering the parExpression production.
 	EnterParExpression(c *ParExpressionContext)
@@ -79,6 +82,9 @@ type GovaluateListener interface {
 
 	// ExitForInit is called when exiting the forInit production.
 	ExitForInit(c *ForInitContext)
+
+	// ExitForeachControl is called when exiting the foreachControl production.
+	ExitForeachControl(c *ForeachControlContext)
 
 	// ExitParExpression is called when exiting the parExpression production.
 	ExitParExpression(c *ParExpressionContext)

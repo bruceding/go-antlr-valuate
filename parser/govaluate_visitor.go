@@ -1,4 +1,4 @@
-// Code generated from Govaluate.g4 by ANTLR 4.13.1. DO NOT EDIT.
+// Code generated from Govaluate.g4 by ANTLR 4.13.0. DO NOT EDIT.
 
 package parser // Govaluate
 
@@ -28,6 +28,9 @@ type GovaluateVisitor interface {
 
 	// Visit a parse tree produced by GovaluateParser#forInit.
 	VisitForInit(ctx *ForInitContext) interface{}
+
+	// Visit a parse tree produced by GovaluateParser#foreachControl.
+	VisitForeachControl(ctx *ForeachControlContext) interface{}
 
 	// Visit a parse tree produced by GovaluateParser#parExpression.
 	VisitParExpression(ctx *ParExpressionContext) interface{}

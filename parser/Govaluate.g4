@@ -15,6 +15,7 @@ blockStatements
 statement : blockLabel=block
           | statementExpression=expression ';'
           | FOR '(' forControl ')' statement
+          | FOREACH '(' foreachControl ')' statement
           | IF parExpression statement (ELSE statement)?
           ;
 
@@ -45,9 +46,9 @@ expression: primary
 forControl
     : forInit? ';' expression? ';' forUpdate=expressionList?
     ;
-
 forInit: expressionList
     ;
+foreachControl : fromExpression=expression 'as' keyExpression=expression '=>' valueExpression=expression; 
 
 parExpression
     : '(' expression ')'
@@ -66,9 +67,10 @@ primary: FLOAT_LITERAL #float
        | IDENTIFIER #identifier
        ;
 
-FOR:    'for';
-IF :    'if';
-ELSE :  'else' ;
+FOR:        'for';
+FOREACH:    'foreach';
+IF :        'if';
+ELSE :      'else' ;
 // float 定义
 FLOAT_LITERAL: [0-9]+
              | (Digits '.' Digits? | '.' Digits) ExponentPart? [fFdD]?

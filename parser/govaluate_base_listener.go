@@ -1,4 +1,4 @@
-// Code generated from Govaluate.g4 by ANTLR 4.13.1. DO NOT EDIT.
+// Code generated from Govaluate.g4 by ANTLR 4.13.0. DO NOT EDIT.
 
 package parser // Govaluate
 
@@ -62,6 +62,12 @@ func (s *BaseGovaluateListener) EnterForInit(ctx *ForInitContext) {}
 
 // ExitForInit is called when production forInit is exited.
 func (s *BaseGovaluateListener) ExitForInit(ctx *ForInitContext) {}
+
+// EnterForeachControl is called when production foreachControl is entered.
+func (s *BaseGovaluateListener) EnterForeachControl(ctx *ForeachControlContext) {}
+
+// ExitForeachControl is called when production foreachControl is exited.
+func (s *BaseGovaluateListener) ExitForeachControl(ctx *ForeachControlContext) {}
 
 // EnterParExpression is called when production parExpression is entered.
 func (s *BaseGovaluateListener) EnterParExpression(ctx *ParExpressionContext) {}
