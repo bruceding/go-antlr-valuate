@@ -270,6 +270,7 @@ resultMap, errs := statement.Evaluate(parameters)
 fmt.Println(resultMap["sum"]) // will print 6, type is float64
 
 ```
+更多的测试用户可以参考 [TestEvaluableStatement](./evaluable_statement_test.go)
 
 
 
