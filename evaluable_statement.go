@@ -23,6 +23,9 @@ func NewEvaluableStatementWithFunctions(expr string, functions map[string]parser
 
 	p := parser.NewGovaluateParser(stream)
 
+	p.RemoveErrorListeners()
+	errorListener := NewEvaluableStatementErrorListener()
+	p.AddErrorListener(errorListener)
 	progContext := p.Prog()
 
 	scan := parser.NewVariableScanListener()
@@ -32,7 +35,7 @@ func NewEvaluableStatementWithFunctions(expr string, functions map[string]parser
 		variableScanListener: scan,
 		progContext:          progContext,
 		customFunctions:      functions,
-	}, nil
+	}, errorListener.Error()
 }
 
 func (e *EvaluableStatement) Evaluate(params map[string]interface{}) (map[string]any, []error) {

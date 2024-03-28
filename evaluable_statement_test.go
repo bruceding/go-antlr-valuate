@@ -214,7 +214,7 @@ func TestEvaluableStatementError(t *testing.T) {
 				sum += v; 
 			}
 			`,
-			errMsg: "key or value variable not found",
+			errMsg: "line 3:24 mismatched input ')' expecting '=>'",
 		},
 		{
 			input: `out_values = (0,0,0);
@@ -226,8 +226,8 @@ func TestEvaluableStatementError(t *testing.T) {
 	}
 	for _, tcase := range testCases {
 		statement, err := NewEvaluableStatement(tcase.input)
-		if err != nil {
-			t.Fatal(err)
+		if err != nil && strings.Contains(err.Error(), tcase.errMsg) {
+			continue
 		}
 
 		paramMap := map[string]any{
