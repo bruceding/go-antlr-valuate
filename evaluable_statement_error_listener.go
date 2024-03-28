@@ -16,7 +16,7 @@ func NewEvaluableStatementErrorListener() *EvaluableStatementErrorListener {
 }
 
 func (d *EvaluableStatementErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
-	err := fmt.Errorf("line %d:%d %s", line, column, msg)
+	err := fmt.Errorf("parse error at line %d:%d %s", line, column, msg)
 	d.err = err
 }
 
