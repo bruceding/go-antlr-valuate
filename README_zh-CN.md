@@ -159,7 +159,7 @@ foo['bar'] > 2
 
 ```go
 input := "a = 1;"
-statement, err := NewEvaluableStatement(input)
+statement, err := valuate.NewEvaluableStatement(input)
 resultMap, errs := statement.Evaluate(nil)
 
 fmt.Println(resultMap["a"]) // will print 1, float64 type
@@ -168,7 +168,7 @@ fmt.Println(resultMap["a"]) // will print 1, float64 type
 也可以数组的初始化
 ```go
 input := "a = (1,2,3);"
-statement, err := NewEvaluableStatement(input)
+statement, err := valuate.NewEvaluableStatement(input)
 resultMap, errs := statement.Evaluate(nil)
 
 fmt.Println(resultMap["a"]) // will print [1 2 3], type []any
@@ -178,7 +178,7 @@ fmt.Println(resultMap["a"]) // will print [1 2 3], type []any
 ```go
 
 input := "a = b;"
-statement, err := NewEvaluableStatement(input)
+statement, err := valuate.NewEvaluableStatement(input)
 parameters := make(map[string]interface{}, 8)
 parameters["b"] = 1;
 
@@ -199,7 +199,7 @@ if (b > 8) {
 	a = 2;
 }`
 
-statement, err := NewEvaluableStatement(input)
+statement, err := valuate.NewEvaluableStatement(input)
 parameters := make(map[string]interface{}, 8)
 parameters["b"] = 4;
 
@@ -219,7 +219,7 @@ for (i = 0;  i < len(values); i++) {
 
 // len 是内置的function , 可以返回数组的长度
 
-statement, err := NewEvaluableStatement(input)
+statement, err := valuate.NewEvaluableStatement(input)
 parameters := make(map[string]interface{}, 8)
 parameters["b"] = 4;
 parameters["values"] = []int{1, 2, 3};
@@ -238,7 +238,7 @@ foreach (input_values_map as k => v) {
 	out_values_map[k] = v;
 }
 `
-statement, err := NewEvaluableStatement(input)
+statement, err := valuate.NewEvaluableStatement(input)
 parameters := make(map[string]interface{}, 8)
 parameters["b"] = 4;
 parameters["input_values_map"] = map[string]any{"1": 1, "2": 2, "3": 3}
@@ -260,7 +260,7 @@ foreach (values as k => v) {
 }
 `
 
-statement, err := NewEvaluableStatement(input)
+statement, err := valuate.NewEvaluableStatement(input)
 parameters := make(map[string]interface{}, 8)
 parameters["b"] = 4;
 parameters["values"] = []int{1, 2, 3};

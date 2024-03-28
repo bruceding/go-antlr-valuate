@@ -23,6 +23,10 @@ func NewEvaluableExpressionWithFunctions(expr string, functions map[string]parse
 
 	p := parser.NewGovaluateParser(stream)
 
+	p.RemoveErrorListeners()
+	errorListener := NewEvaluableStatementErrorListener()
+	p.AddErrorListener(errorListener)
+
 	expressionContext := p.Expression()
 
 	//ast := parser.NewASTEvaluator()
@@ -31,7 +35,7 @@ func NewEvaluableExpressionWithFunctions(expr string, functions map[string]parse
 		//ast:        ast,
 		expressionContext: expressionContext,
 		customFunctions:   functions,
-	}, nil
+	}, errorListener.Error()
 }
 
 func (e *EvaluableExpression) Evaluate(params map[string]interface{}) (interface{}, error) {
