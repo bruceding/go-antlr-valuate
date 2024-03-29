@@ -899,8 +899,15 @@ func (v *StatementASTEvaluator) VisitExpression(ctx *ExpressionContext) interfac
 						if index == "" {
 							return fmt.Errorf("invalid index, variable:%v", leftVariable.String())
 						}
-						if mapValue, ok := paramValue.(map[string]any); ok {
+						switch mapValue := paramValue.(type) {
+						case map[string]any:
 							mapValue[index] = right
+						case map[string]float64:
+							mapValue[index] = right.(float64)
+						case map[string]string:
+							mapValue[index] = utils.ToString(right)
+						case map[string]int:
+							mapValue[index] = utils.ToInt(right)
 						}
 					}
 				}
