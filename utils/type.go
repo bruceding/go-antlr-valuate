@@ -29,6 +29,10 @@ func ToInt(x any) int {
 		return int(x)
 	case float64:
 		return int(x)
+	case string:
+		if i, err := strconv.Atoi(x); err == nil {
+			return i
+		}
 	}
 
 	return 0
