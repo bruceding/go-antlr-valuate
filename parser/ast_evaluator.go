@@ -564,13 +564,14 @@ func (v *ASTEvaluator) VisitArray_value(ctx *Array_valueContext) interface{} {
 }
 func (v *ASTEvaluator) VisitIdentifier(ctx *IdentifierContext) interface{} {
 	str := ctx.GetText()
-	str = strings.Trim(str, "[]${}")
+	str = strings.Trim(str, "${}")
 	if str != "" {
 		if val, ok := v.paramsMap[str]; ok {
 			return val
 		}
 	}
-	return fmt.Errorf("param:%s not found", str)
+	// use default value
+	return float64(0)
 }
 func (v *ASTEvaluator) VisitFunctionCall(ctx *FunctionCallContext) interface{} {
 	funcName := ctx.IDENTIFIER().GetText()
