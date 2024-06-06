@@ -2,6 +2,7 @@ package valuate
 
 import (
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -151,4 +152,29 @@ func TestEvaluableExpressionFunctions(t *testing.T) {
 	if result.(bool) != false {
 		t.Fatal("expect result wrong, expected false")
 	}
+}
+
+func TestConcurrentExpression(t *testing.T) {
+	source := "(mem_used / total_mem) * 100"
+	evaluableExpression, err := NewEvaluableExpression(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			result, err := evaluableExpression.Evaluate(map[string]any{"mem_used": 512, "total_mem": 1024})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.(float64) != float64(50) {
+				t.Fatal("expect result wrong, expected 50")
+			}
+		}()
+	}
+
+	wg.Wait()
 }

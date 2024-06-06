@@ -60,7 +60,10 @@ func NewASTEvaluatorWithParams(p map[string]any, functions map[string]Expression
 		}
 	}
 	if functions != nil {
-		ast.preDefineFunctions = functions
+		for k, v := range functions {
+			ast.preDefineFunctions[k] = v
+		}
+		//ast.preDefineFunctions = functions
 		for k, v := range buildInFunctionsMap {
 			ast.preDefineFunctions[k] = v
 		}

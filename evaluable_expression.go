@@ -31,10 +31,15 @@ func NewEvaluableExpressionWithFunctions(expr string, functions map[string]parse
 
 	//ast := parser.NewASTEvaluator()
 
+	customFunctions := make(map[string]parser.ExpressionFunction, len(functions))
+	for k, v := range functions {
+		customFunctions[k] = v
+	}
+
 	return &EvaluableExpression{
 		//ast:        ast,
 		expressionContext: expressionContext,
-		customFunctions:   functions,
+		customFunctions:   customFunctions,
 	}, errorListener.Error()
 }
 
