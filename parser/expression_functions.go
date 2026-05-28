@@ -10,6 +10,11 @@ import (
 type ExpressionFunction func(arguments ...interface{}) (interface{}, error)
 
 var (
+	// BuildInFunctionsMap exposes the engine's built-in functions so callers
+	// (e.g. EvaluableExpression) can merge them with user functions once at
+	// parse time and avoid copying them on every Evaluate call.
+	BuildInFunctionsMap = buildInFunctionsMap
+
 	buildInFunctionsMap = map[string]ExpressionFunction{
 		"len": func(args ...interface{}) (interface{}, error) {
 			switch val := args[0].(type) {
