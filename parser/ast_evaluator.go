@@ -18,10 +18,77 @@ type ASTEvaluator struct {
 	BaseGovaluateVisitor
 	paramsMap          map[string]any
 	preDefineFunctions map[string]ExpressionFunction
+	// pre is an optional set of parse-time caches. When non-nil the visitor
+	// reads literal values and identifier names from it instead of
+	// recomputing them on every Evaluate call.
+	pre *PreCompiled
 }
 
 func NewASTEvaluator() *ASTEvaluator {
 	return NewASTEvaluatorWithParams(make(map[string]any), make(map[string]ExpressionFunction))
+}
+
+// NewASTEvaluatorShared builds an evaluator that shares its parameters,
+// functions and pre-computed caches with the parent EvaluableExpression.
+// No defensive copying is performed, so callers must not mutate the inputs
+// for the duration of evaluation. This constructor is allocation-cheap and
+// is intended for the hot path; use NewASTEvaluatorWithParams when ownership
+// or type-coercion semantics matter.
+func NewASTEvaluatorShared(params map[string]any, pre *PreCompiled) *ASTEvaluator {
+	ast := &ASTEvaluator{
+		paramsMap: params,
+		pre:       pre,
+	}
+	if pre != nil {
+		ast.preDefineFunctions = pre.Functions
+	}
+	return ast
+}
+
+// Reset rebinds the evaluator to a new set of inputs without allocating a
+// new struct. Used together with sync.Pool for high-throughput evaluation.
+func (v *ASTEvaluator) Reset(params map[string]any, pre *PreCompiled) {
+	v.paramsMap = params
+	v.pre = pre
+	if pre != nil {
+		v.preDefineFunctions = pre.Functions
+	} else {
+		v.preDefineFunctions = nil
+	}
+}
+
+// normalizeNumeric promotes integer-flavored values to float64 to match what
+// the visitor's arithmetic and comparison branches expect. Non-numeric
+// values are returned unchanged with no allocation.
+func normalizeNumeric(v any) any {
+	switch val := v.(type) {
+	case float64, string, bool, time.Time, []any, []float64, []string, []int, []int64, []int32, []float32, []bool:
+		return v
+	case float32:
+		return float64(val)
+	case int:
+		return float64(val)
+	case int8:
+		return float64(val)
+	case int16:
+		return float64(val)
+	case int32:
+		return float64(val)
+	case int64:
+		return float64(val)
+	case uint:
+		return float64(val)
+	case uint8:
+		return float64(val)
+	case uint16:
+		return float64(val)
+	case uint32:
+		return float64(val)
+	case uint64:
+		return float64(val)
+	default:
+		return v
+	}
 }
 func NewASTEvaluatorWithParams(p map[string]any, functions map[string]ExpressionFunction) *ASTEvaluator {
 	ast := &ASTEvaluator{
@@ -73,27 +140,41 @@ func NewASTEvaluatorWithParams(p map[string]any, functions map[string]Expression
 func (v *ASTEvaluator) Visit(tree antlr.ParseTree) interface{} { return tree.Accept(v) }
 
 func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
+	// Fast path: if the entire subtree is constant (folded at parse time),
+	// return the cached value without descending further.
+	if v.pre != nil {
+		if val, ok := v.pre.Literals[ctx]; ok {
+			return val
+		}
+	}
 	if ctx.Primary() != nil {
 		return v.Visit(ctx.Primary())
 	}
-	if len(ctx.AllExpression()) == 1 {
+	var exprs []IExpressionContext
+	if v.pre != nil {
+		exprs = v.pre.ExprChildren[ctx]
+	}
+	if exprs == nil {
+		exprs = ctx.AllExpression()
+	}
+	if len(exprs) == 1 {
 		if ctx.prefix != nil {
 			switch ctx.prefix.GetText() {
 			case "-":
-				return (-1) * (v.Visit(ctx.Expression(0))).(float64)
+				return (-1) * (v.Visit(exprs[0])).(float64)
 			case "+":
-				return v.Visit(ctx.Expression(0))
+				return v.Visit(exprs[0])
 			case "!":
-				return !v.Visit(ctx.Expression(0)).(bool)
+				return !v.Visit(exprs[0]).(bool)
 			case "~":
-				return float64(^int(v.Visit(ctx.Expression(0)).(float64)))
+				return float64(^int(v.Visit(exprs[0]).(float64)))
 			case "++":
-				return float64(1 + int(v.Visit(ctx.Expression(0)).(float64)))
+				return float64(1 + int(v.Visit(exprs[0]).(float64)))
 			case "--":
-				return float64(int(v.Visit(ctx.Expression(0)).(float64)) - 1)
+				return float64(int(v.Visit(exprs[0]).(float64)) - 1)
 			}
 		} else if ctx.bop != nil {
-			left := v.Visit(ctx.Expression(0))
+			left := v.Visit(exprs[0])
 			if ctx.bop.GetText() == "." {
 				// get field value from struct
 				if ctx.IDENTIFIER() != nil {
@@ -233,10 +314,10 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 			}
 		}
 
-		return v.Visit(ctx.Expression(0))
-	} else if len(ctx.AllExpression()) == 2 {
-		left := v.Visit(ctx.Expression(0))
-		right := v.Visit(ctx.Expression(1))
+		return v.Visit(exprs[0])
+	} else if len(exprs) == 2 {
+		left := v.Visit(exprs[0])
+		right := v.Visit(exprs[1])
 		switch ctx.bop.GetText() {
 		case "+":
 			switch val := left.(type) {
@@ -298,8 +379,38 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 				return fmt.Errorf("type:%T not support op:^ ", val)
 			}
 		case "==":
+			// Fast path for the common primitive types so we avoid the
+			// expensive reflect.DeepEqual call.
+			switch lv := left.(type) {
+			case float64:
+				if rv, ok := right.(float64); ok {
+					return lv == rv
+				}
+			case string:
+				if rv, ok := right.(string); ok {
+					return lv == rv
+				}
+			case bool:
+				if rv, ok := right.(bool); ok {
+					return lv == rv
+				}
+			}
 			return reflect.DeepEqual(left, right)
 		case "!=":
+			switch lv := left.(type) {
+			case float64:
+				if rv, ok := right.(float64); ok {
+					return lv != rv
+				}
+			case string:
+				if rv, ok := right.(string); ok {
+					return lv != rv
+				}
+			case bool:
+				if rv, ok := right.(bool); ok {
+					return lv != rv
+				}
+			}
 			return !reflect.DeepEqual(left, right)
 		case "<=":
 			switch val := left.(type) {
@@ -482,21 +593,19 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 		default:
 			return fmt.Errorf("op:%s not support", ctx.bop.GetText())
 		}
-	} else if len(ctx.AllExpression()) == 3 { // exp ? exp : exp
-		condition := v.Visit(ctx.Expression(0))
-		left := v.Visit(ctx.Expression(1))
-		right := v.Visit(ctx.Expression(2))
+	} else if len(exprs) == 3 { // exp ? exp : exp
+		condition := v.Visit(exprs[0])
 		switch ctx.bop.GetText() {
 		case "?":
-			if val, ok := condition.(bool); !ok {
+			val, ok := condition.(bool)
+			if !ok {
 				return fmt.Errorf("op:%s, condition:%v should be bool", ctx.bop.GetText(), condition)
-			} else {
-				if val {
-					return left
-				} else {
-					return right
-				}
 			}
+			// Short-circuit: only evaluate the branch that is taken.
+			if val {
+				return v.Visit(exprs[1])
+			}
+			return v.Visit(exprs[2])
 		default:
 			return fmt.Errorf("op:%s not support", ctx.bop.GetText())
 		}
@@ -506,6 +615,11 @@ func (v *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 func (v *ASTEvaluator) VisitFloat(ctx *FloatContext) interface{} {
+	if v.pre != nil {
+		if val, ok := v.pre.Literals[ctx]; ok {
+			return val
+		}
+	}
 
 	str := ctx.GetText()
 	if f, err := strconv.ParseFloat(str, 64); err == nil {
@@ -516,6 +630,11 @@ func (v *ASTEvaluator) VisitFloat(ctx *FloatContext) interface{} {
 }
 
 func (v *ASTEvaluator) VisitString(ctx *StringContext) interface{} {
+	if v.pre != nil {
+		if val, ok := v.pre.Literals[ctx]; ok {
+			return val
+		}
+	}
 	str := ctx.GetText()
 	str = strings.Trim(str, "'")
 	if t, ok := utils.TryParseTime(str); ok {
@@ -525,6 +644,11 @@ func (v *ASTEvaluator) VisitString(ctx *StringContext) interface{} {
 }
 
 func (v *ASTEvaluator) VisitBool(ctx *BoolContext) interface{} {
+	if v.pre != nil {
+		if val, ok := v.pre.Literals[ctx]; ok {
+			return val
+		}
+	}
 	str := ctx.GetText()
 	return str == "true"
 }
@@ -534,17 +658,22 @@ func (v *ASTEvaluator) VisitArrays(ctx *ArraysContext) interface{} {
 }
 
 func (v *ASTEvaluator) VisitArray(ctx *ArrayContext) interface{} {
-	arr := make([]any, 0, len(ctx.AllArray_value()))
+	values := ctx.AllArray_value()
+	arr := make([]any, 0, len(values))
 
-	for i := 0; i < len(ctx.AllArray_value()); i++ {
-		val := v.Visit(ctx.Array_value(i))
-		arr = append(arr, val)
+	for _, av := range values {
+		arr = append(arr, v.Visit(av))
 	}
 
 	return arr
 }
 
 func (v *ASTEvaluator) VisitArray_value(ctx *Array_valueContext) interface{} {
+	if v.pre != nil {
+		if val, ok := v.pre.Literals[ctx]; ok {
+			return val
+		}
+	}
 	if ctx.STRING_LITERAL() != nil {
 		str := ctx.GetText()
 		str = strings.Trim(str, "'")
@@ -566,34 +695,66 @@ func (v *ASTEvaluator) VisitArray_value(ctx *Array_valueContext) interface{} {
 	return ctx.GetText()
 }
 func (v *ASTEvaluator) VisitIdentifier(ctx *IdentifierContext) interface{} {
-	str := ctx.GetText()
-	str = strings.Trim(str, "${}")
-	if str != "" {
-		if val, ok := v.paramsMap[str]; ok {
-			return val
+	var name string
+	if v.pre != nil {
+		if n, ok := v.pre.VarNames[ctx]; ok {
+			name = n
+		}
+	}
+	if name == "" {
+		name = strings.Trim(ctx.GetText(), "${}")
+	}
+	if name != "" {
+		if val, ok := v.paramsMap[name]; ok {
+			return normalizeNumeric(val)
 		}
 	}
 	// use default value
 	return float64(0)
 }
 func (v *ASTEvaluator) VisitFunctionCall(ctx *FunctionCallContext) interface{} {
-	funcName := ctx.IDENTIFIER().GetText()
-	params := v.Visit(ctx.ExpressionList())
-
-	if f, exist := v.preDefineFunctions[funcName]; exist {
-		if v, err := f((params.([]any))...); err != nil {
-			return err
-		} else {
-			return v
+	// Fast path: parse-time resolved function pointer + cached name.
+	var (
+		f        ExpressionFunction
+		funcName string
+		cached   bool
+	)
+	if v.pre != nil {
+		if rf, ok := v.pre.ResolvedFuncs[ctx]; ok {
+			f = rf
+			cached = true
+		} else if name, ok := v.pre.ResolvedFuncNames[ctx]; ok {
+			funcName = name
+		}
+	}
+	if !cached {
+		if funcName == "" {
+			funcName = ctx.IDENTIFIER().GetText()
+		}
+		var exist bool
+		if f, exist = v.preDefineFunctions[funcName]; !exist {
+			return fmt.Errorf("not found function:%s", funcName)
 		}
 	}
 
-	return fmt.Errorf("not found function:%s", funcName)
+	params := v.Visit(ctx.ExpressionList())
+	if val, err := f((params.([]any))...); err != nil {
+		return err
+	} else {
+		return val
+	}
 }
 
 func (v *ASTEvaluator) VisitExpressionList(ctx *ExpressionListContext) interface{} {
-	var params []any
-	for _, exprContext := range ctx.AllExpression() {
+	var exprs []IExpressionContext
+	if v.pre != nil {
+		exprs = v.pre.ExprListChildren[ctx]
+	}
+	if exprs == nil {
+		exprs = ctx.AllExpression()
+	}
+	params := make([]any, 0, len(exprs))
+	for _, exprContext := range exprs {
 		params = append(params, v.Visit(exprContext))
 	}
 
