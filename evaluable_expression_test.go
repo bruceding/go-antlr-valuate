@@ -1,6 +1,7 @@
 package valuate
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 	"testing"
@@ -177,4 +178,63 @@ func TestConcurrentExpression(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+// TestSyntaxErrorReportedByTwoStageParse ensures the SLL → LL fallback
+// pipeline still surfaces syntax errors with a useful message instead of
+// silently producing a malformed parse tree.
+func TestSyntaxErrorReportedByTwoStageParse(t *testing.T) {
+	cases := []string{
+		"1 +",     // missing right operand
+		"(1 + 2",  // unbalanced parenthesis
+		"1 + * 2", // extraneous operator between operands
+		"",        // empty input
+		"()",      // empty parenthesis
+	}
+	for _, expr := range cases {
+		if _, err := NewEvaluableExpression(expr); err == nil {
+			t.Fatalf("expected syntax error for %q, got nil", expr)
+		}
+	}
+}
+
+// TestEvaluatorReturnedToPoolAfterPanic guards the defer-based pool return:
+// a user-supplied function that panics must not drain the evaluator pool.
+// Before the fix the evaluator was leaked on every panic; after the fix the
+// same evaluator is reused on the next successful call, so subsequent calls
+// still succeed and the pool stays warm.
+func TestEvaluatorReturnedToPoolAfterPanic(t *testing.T) {
+	boom := func(args ...interface{}) (interface{}, error) {
+		panic("boom")
+	}
+	fns := map[string]parser.ExpressionFunction{"boom": boom}
+
+	expr, err := NewEvaluableExpressionWithFunctions("boom() + 1", fns)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 5; i++ {
+		func() {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Fatalf("iteration %d: expected panic, got none", i)
+				}
+			}()
+			_, _ = expr.Evaluate(nil)
+		}()
+	}
+
+	// After repeated panics the pool must still be usable for normal calls.
+	ok, err := NewEvaluableExpression("1 + 2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := ok.Evaluate(nil)
+	if err != nil {
+		t.Fatalf("unexpected error after panic recovery: %v", err)
+	}
+	if fmt.Sprintf("%v", res) != "3" {
+		t.Fatalf("expected 3, got %v", res)
+	}
 }

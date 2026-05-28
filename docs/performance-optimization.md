@@ -62,7 +62,7 @@
 | 5 | 常量折叠 | `foldConstants` + `pre.Literals` (folded) | 纯字面量表达式 |
 | 6 | `AllExpression()` 缓存 | `pre.ExprChildren` / `pre.ExprListChildren` | 全部 |
 | 7 | 函数指针前移 | `pre.ResolvedFuncs` | 函数调用 |
-| 8 | `PredictionMode SLL` | `evaluable_expression.go` | Parse 阶段 |
+| 8 | `PredictionMode SLL` + LL 兜底 | `evaluable_expression.go` | Parse 阶段 |
 | 9 | `reflect.DeepEqual` → type switch | `VisitExpression` 的 `==/!=` 分支 | 比较运算 |
 | 10 | 三目短路 | `VisitExpression` 的 `?:` 分支 | 三目表达式 |
 
@@ -109,9 +109,13 @@ func (e *EvaluableExpression) Evaluate(params map[string]interface{}) (interface
     } else {
         ast = parser.NewASTEvaluatorShared(params, e.pre)
     }
+    // 用 defer 保证即使 Visit 中 panic（例如用户函数 panic）也能归还到池，
+    // 同时释放 caller-owned 引用避免被 pool 长期 pin 住。
+    defer func() {
+        ast.Reset(nil, nil)
+        e.pool.Put(ast)
+    }()
     result := ast.Visit(e.expressionContext)
-    ast.Reset(nil, nil)  // 释放 caller-owned 引用，避免被 pool 长期 pin 住
-    e.pool.Put(ast)
     ...
 }
 ```
@@ -119,8 +123,9 @@ func (e *EvaluableExpression) Evaluate(params map[string]interface{}) (interface
 要点：
 
 - `Reset` 不分配新对象，只重绑指针。
+- 归还使用 `defer`：如果用户自定义函数 panic / 类型断言失败、或 visitor 路径任何处 panic，evaluator 仍会被归还到池，避免池被抽干后退化为每次重新分配。
 - 归还前显式 `Reset(nil, nil)` 把 `paramsMap` 引用清空，**避免 evaluator 在池中长期持有 caller 的 map**。
-- `sync.Pool` 天生 goroutine-safe，与第 3.3 项的"零拷贝共享"组合后不破坏并发模型。
+- `sync.Pool` 天生 goroutine-safe，与第 3.3 项的“零拷贝共享”组合后不破坏并发模型。
 
 ### 3.3 零拷贝共享：`NewASTEvaluatorShared`
 
@@ -243,15 +248,31 @@ case *FunctionCallContext:
 
 `VisitFunctionCall` 命中时直接拿到函数指针，**省掉一次 `IDENTIFIER().GetText()` 字符串构造 + map 查找**。命中失败时仍然回退到原路径并报标准错误信息。
 
-### 3.8 `PredictionMode SLL`
+### 3.8 `PredictionMode SLL` + LL 兜底（标准两阶段解析）
 
-[evaluable_expression.go](file:///Users/dingjing/work/go-antlr-valuate/evaluable_expression.go)：
+[evaluable_expression.go](file:///Users/dingjing/work/go-antlr-valuate/evaluable_expression.go) 中 `parseExpression`：
 
 ```go
+// Stage 1: SLL prediction with an error listener that records but does not abort.
 p.GetInterpreter().SetPredictionMode(antlr.PredictionModeSLL)
+p.AddErrorListener(sllListener)
+ctx := p.Expression()
+if sllListener.Error() == nil && !p.HasError() {
+    return ctx, nil
+}
+
+// Stage 2: rebuild a fresh parser with full LL + DefaultErrorStrategy.
+p.GetInterpreter().SetPredictionMode(antlr.PredictionModeLL)
+p.AddErrorListener(errorListener)
+ctx = p.Expression()
 ```
 
-ANTLR 默认使用 LL 预测，对本项目这种无歧义表达式语法过保守。SLL 显著加快 Parse；如有歧义 ANTLR 会自动回退到 LL，因此正确性不变。
+ANTLR 默认使用 LL 预测，对本项目这种几乎无歧义的表达式语法过保守。SLL 显著加快 Parse；但 **antlr4-go 不会自动 fallback**——SLL 在歧义点会按首选规则静默选择，可能产出错误的解析树。我们用标准的 ANTLR 两阶段策略兜底：
+
+1. **Stage 1**：SLL 预测 + 一个临时 `errorListener`。常态路径下命中此 stage，仅多一个 listener 实例化。
+2. **Stage 2**：仅在 SLL 报错时执行，用全新 parser + LL + `DefaultErrorStrategy` + 业务 listener 重新解析，给出权威诊断。
+
+> **为什么不用 `BailErrorStrategy`？** antlr4-go v4.13.0 的 `BailErrorStrategy` 在 `DefaultErrorStrategy.ReportError` 内部会调用未实现的 `ParseCancellationException.GetMessage()`，导致整个解析过程 panic。改用 listener 监测错误，等价但安全。
 
 > 这一项对 Evaluate 没有直接影响，但每次 `NewEvaluableExpression` 都受益。
 

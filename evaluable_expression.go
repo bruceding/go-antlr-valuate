@@ -28,23 +28,8 @@ func NewEvaluableExpression(expr string) (*EvaluableExpression, error) {
 
 func NewEvaluableExpressionWithFunctions(expr string, functions map[string]parser.ExpressionFunction) (*EvaluableExpression, error) {
 
-	lexer := parser.NewGovaluateLexer(antlr.NewInputStream(expr))
-
-	stream := antlr.NewCommonTokenStream(lexer, antlr.LexerDefaultTokenChannel)
-
-	p := parser.NewGovaluateParser(stream)
-	// SLL prediction mode is significantly faster for the unambiguous
-	// expression grammar used here. ANTLR will fall back to LL automatically
-	// if a parse conflict is detected.
-	p.GetInterpreter().SetPredictionMode(antlr.PredictionModeSLL)
-
-	p.RemoveErrorListeners()
-	errorListener := NewEvaluableStatementErrorListener()
-	p.AddErrorListener(errorListener)
-
-	expressionContext := p.Expression()
-
-	if err := errorListener.Error(); err != nil {
+	expressionContext, err := parseExpression(expr)
+	if err != nil {
 		return nil, err
 	}
 
@@ -71,6 +56,59 @@ func NewEvaluableExpressionWithFunctions(expr string, functions map[string]parse
 	}, nil
 }
 
+// parseExpression performs the standard ANTLR two-stage parsing strategy:
+//
+//  1. Stage 1 uses the fast SLL prediction mode with an error listener
+//     attached. SLL is significantly faster than full LL but is not
+//     guaranteed to match LL's decision on ambiguous inputs; if anything
+//     goes wrong the listener captures it and we explicitly retry with LL,
+//     instead of silently returning a wrong parse tree.
+//
+//     We deliberately do NOT use antlr.BailErrorStrategy here: in
+//     antlr4-go v4.13.0 it panics from DefaultErrorStrategy.ReportError
+//     because ParseCancellationException.GetMessage is unimplemented.
+//
+//  2. Stage 2 only runs when stage 1 reports an error. It rebuilds a fresh
+//     parser using the default LL prediction mode and DefaultErrorStrategy,
+//     and attaches our error listener so the caller still receives precise
+//     diagnostics for genuine syntax errors.
+//
+// For the overwhelmingly common case of unambiguous, well-formed expressions
+// stage 1 succeeds and stage 2 is skipped, so we keep the SLL speed-up
+// without sacrificing correctness on ambiguous or malformed inputs.
+func parseExpression(expr string) (parser.IExpressionContext, error) {
+	// Stage 1: SLL prediction with an error listener that records but does
+	// not abort. If SLL hits a conflict / syntax error we discard the
+	// (potentially wrong) tree and retry with full LL.
+	lexer := parser.NewGovaluateLexer(antlr.NewInputStream(expr))
+	stream := antlr.NewCommonTokenStream(lexer, antlr.LexerDefaultTokenChannel)
+	p := parser.NewGovaluateParser(stream)
+	p.GetInterpreter().SetPredictionMode(antlr.PredictionModeSLL)
+	p.RemoveErrorListeners()
+	sllListener := NewEvaluableStatementErrorListener()
+	p.AddErrorListener(sllListener)
+
+	ctx := p.Expression()
+	if sllListener.Error() == nil && !p.HasError() {
+		return ctx, nil
+	}
+
+	// Stage 2: rebuild with full LL + default error strategy + our listener.
+	lexer = parser.NewGovaluateLexer(antlr.NewInputStream(expr))
+	stream = antlr.NewCommonTokenStream(lexer, antlr.LexerDefaultTokenChannel)
+	p = parser.NewGovaluateParser(stream)
+	p.GetInterpreter().SetPredictionMode(antlr.PredictionModeLL)
+	p.RemoveErrorListeners()
+	errorListener := NewEvaluableStatementErrorListener()
+	p.AddErrorListener(errorListener)
+
+	ctx = p.Expression()
+	if err := errorListener.Error(); err != nil {
+		return nil, err
+	}
+	return ctx, nil
+}
+
 func (e *EvaluableExpression) Evaluate(params map[string]interface{}) (interface{}, error) {
 	var ast *parser.ASTEvaluator
 	if v := e.pool.Get(); v != nil {
@@ -80,16 +118,19 @@ func (e *EvaluableExpression) Evaluate(params map[string]interface{}) (interface
 		ast = parser.NewASTEvaluatorShared(params, e.pre)
 	}
 
-	result := ast.Visit(e.expressionContext)
+	// Use defer so the evaluator is still returned to the pool if a
+	// user-supplied function (or anything else on the visit path) panics.
+	// We also clear the references the evaluator holds so the pooled object
+	// does not pin caller-owned parameter maps or pre-compiled data.
+	defer func() {
+		ast.Reset(nil, nil)
+		e.pool.Put(ast)
+	}()
 
-	// Clear the references the evaluator holds before returning it to the
-	// pool so the pooled object does not pin caller-owned data.
-	ast.Reset(nil, nil)
-	e.pool.Put(ast)
+	result := ast.Visit(e.expressionContext)
 
 	if err, ok := result.(error); ok {
 		return nil, err
 	}
-
 	return result, nil
 }
